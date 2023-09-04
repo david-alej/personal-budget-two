@@ -1,6 +1,7 @@
 let envelopeIdCounter = 0
 
 const envelopeFactory = (category, money) => {
+  db.allEnvelopes.allotmentRemaining -= money
   return {
     id: `${envelopeIdCounter++}`,
     category,
@@ -8,7 +9,7 @@ const envelopeFactory = (category, money) => {
   }
 }
 
-let totalAllotment = 350
+let totalAllotment = 500
 
 function isValidEnvelope(instance) {
   instance.id = instance.id || ""
@@ -26,6 +27,13 @@ function isValidEnvelope(instance) {
   } else {
     throw new Error("Minion's salary must be a number.")
   }
+  if (db.allEnvelopes.allotmentRemaining - instance.allotment < 0) {
+    throw new Error(
+      `Envelope' allotment is too much by ${
+        instance.allotemnt - db.allEnvelopes.allotmentRemaining
+      }`
+    )
+  }
   return true
 }
 
@@ -40,6 +48,7 @@ const db = {
     data: allEnvelopes,
     nextId: envelopeIdCounter,
     isValid: isValidEnvelope,
+    allotmentRemaining: totalAllotment,
     totalAllotment: totalAllotment,
   },
 }
@@ -53,24 +62,28 @@ function getEnvelopeFromDatabaseById(id) {
 }
 
 function addEnvelopeToDatabase(instance) {
-  if (db.allEnvelopes.isValid(instance)) {
+  const model = db.allEnvelopes
+  if (model.isValid(instance)) {
     instance.id = `${envelopeIdCounter++}`
-    db.allEnvelopes.data.push(instance)
-    return db.allEnvelopes.data[db.allEnvelopes.data.length - 1]
+    model.allotmentRemaining -= instance.allotemnt
+    model.data.push(instance)
+    return model.data[model.data.length - 1]
   }
 }
 
 const updateEnvelopeInDatabase = (instance) => {
   const model = db.allEnvelopes
-  const instanceIndex = model.data.findIndex((element) => {
+  const envelopeIndex = model.data.findIndex((element) => {
     return element.id === instance.id
   })
-  if (instanceIndex > -1 && model.isValid(instance)) {
-    model.data[instanceIndex] = instance
-    return model.data[instanceIndex]
-  } else {
-    return null
+  if (envelopeIndex > -1) {
+    model.allotmentRemaining += model.data[envelopeIndex]
+    if (model.isValid(instance)) {
+      model.data[envelopeIndex] = instance
+      return model.data[envelopeIndex]
+    }
   }
+  return null
 }
 
 const deleteEnvelopeFromDatabasebyId = (id) => {
@@ -79,6 +92,7 @@ const deleteEnvelopeFromDatabasebyId = (id) => {
     return element.id === id
   })
   if (index !== -1) {
+    model.allotmentRemaining += model.data[index].allotment
     model.data.splice(index, 1)
     return true
   }
@@ -88,6 +102,7 @@ const deleteEnvelopeFromDatabasebyId = (id) => {
 const deleteAllEnvelopesFromDatabase = () => {
   const model = db.allEnvelopes
   model.data = []
+  model.allotmentRemaining = model.totalAllotment
   return model.data
 }
 
