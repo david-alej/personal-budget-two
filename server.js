@@ -10,7 +10,7 @@ app.use(bodyParser.json())
 
 PORT = process.env.PORT || 4001
 
-const envelopesRouter = require("./server/routes")
+const envelopesRouter = require("./server/routes/envelopes")
 app.use("/api/envelopes", envelopesRouter)
 
 app.listen(PORT, () => {
