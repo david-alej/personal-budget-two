@@ -12,6 +12,7 @@ Just download the files and install the dependencies to run this program. Depend
 - Mocha
 - Chai
 - Sinon
+- pg
 
 ## Technologies
 

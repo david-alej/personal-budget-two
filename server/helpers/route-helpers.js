@@ -1,11 +1,11 @@
-const {
-  getAllEnvelopesFromDatabase,
-  getEnvelopeFromDatabaseById,
-  addEnvelopeToDatabase,
-  updateEnvelopeInDatabase,
-  deleteEnvelopeFromDatabasebyId,
-  deleteAllEnvelopesFromDatabase,
-} = require("../helpers/db-helpers")
+const Pool = require("pg").Pool
+const pool = new Pool({
+  user: "budgeteer",
+  host: "localhost",
+  database: "api",
+  password: "password",
+  port: 5432,
+})
 
 function handleEnvelopeId(req, res, next, id) {
   const envelope = getEnvelopeFromDatabaseById(id)

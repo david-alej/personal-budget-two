@@ -1,3 +1,14 @@
+const Pool = require("pg").Pool
+const pool = new Pool({
+  user: "budgeteer",
+  host: "localhost",
+  database: "api",
+  password: "password",
+  port: 5432,
+})
+
+// -------------------------------------------------------------
+
 let envelopeIdCounter = 0
 let totalAllotment = 500
 
