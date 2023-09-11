@@ -1,20 +1,28 @@
 const db = require("../db/db")
 
-function getAllEnvelopesFromDatabase() {
-  return db.allEnvelopes.data
+async function getAllEnvelopesFromDatabase() {
+  const envelopesQuery = await db.allEnvelopes.data.query(
+    "SELECT * FROM envelopes;"
+  )
+  return envelopesQuery.rows
 }
 
-function getEnvelopeFromDatabaseById(id) {
-  return db.allEnvelopes.data.find((element) => element.id === id)
+async function getEnvelopeFromDatabaseById(id) {
+  const envelopeQuery = await db.allEnvelopes.data.query(
+    "SELECT * FROM envelopes WHERE id = $1",
+    [id]
+  )
+  return envelopeQuery.rows
 }
 
-function addEnvelopeToDatabase(instance) {
+async function addEnvelopeToDatabase(instance) {
   const model = db.allEnvelopes
   if (model.isValid(instance)) {
-    instance.id = `${model.nextId++}`
-    model.allotmentRemaining -= instance.allotemnt
-    model.data.push(instance)
-    return model.data[model.data.length - 1]
+    const insertEnvelopeQuery = await model.data.query(
+      "INSERT INTO envelopes (category, allotment) VALUES ($1, $2) RETURNING *;",
+      [instance.category, instance.allotment]
+    )
+    return insertEnvelopeQuery.rows
   }
 }
 

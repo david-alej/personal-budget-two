@@ -2,17 +2,14 @@ const Pool = require("pg").Pool
 const pool = new Pool({
   user: "budgeteer",
   host: "localhost",
-  database: "api",
+  database: "budget_api",
   password: "password",
   port: 5432,
 })
 
-// -------------------------------------------------------------
-
-let envelopeIdCounter = 0
 let totalAllotment = 500
 
-function isValidEnvelope(instance) {
+async function isValidEnvelope(instance) {
   instance.id = instance.id || ""
   instance.category = instance.category || ""
   instance.allotment = instance.allotment || ""
@@ -30,11 +27,15 @@ function isValidEnvelope(instance) {
   } else {
     throw new Error("Minion's salary must be a number.")
   }
-  if (db.allEnvelopes.allotmentRemaining - instance.allotment < 0) {
+
+  const allotmentUsedQuery = await pool.query(
+    "SELECT sum(allotment) FROM  envelopes;"
+  )
+  const allotmentUsed = allotmentUsedQuery.rows
+  const allotmentRemaining = totalAllotment - allotmentUsed - instance.allotment
+  if (allotmentRemaining < 0) {
     throw new Error(
-      `Envelope' allotment is too much by ${
-        instance.allotemnt - db.allEnvelopes.allotmentRemaining
-      }`
+      `Envelope' allotment is too much by ${-1 * allotmentRemaining} $`
     )
   }
   return true
@@ -42,29 +43,28 @@ function isValidEnvelope(instance) {
 
 const db = {
   allEnvelopes: {
-    data: [],
-    nextId: envelopeIdCounter,
+    data: pool,
     isValid: isValidEnvelope,
-    allotmentRemaining: totalAllotment,
-    totalAllotment: totalAllotment,
   },
 }
 
-// Seeding db data
-const envelopeFactory = (category, allotment) => {
-  db.allEnvelopes.allotmentRemaining -= allotment
-  return {
-    id: `${db.allEnvelopes.nextId++}`,
-    category,
-    allotment,
+// Seeding data into envelopes table
+const envelopeFactory = async (category, allotment) => {
+  try {
+    db.allEnvelopes.isValid({ category, allotment })
+    const res = await pool.query(
+      "INSERT INTO envelopes (category, allotment) VALUES ($1, $2)",
+      [category, allotment]
+    )
+  } catch (err) {
+    console.error(err)
   }
 }
 
 function seedData() {
-  const model = db.allEnvelopes
-  model.data.push(envelopeFactory("groceries", 150))
-  model.data.push(envelopeFactory("orderingOut", 50))
-  model.data.push(envelopeFactory("savings", 125))
+  envelopeFactory("groceries", 150)
+  envelopeFactory("orderingOut", 50)
+  envelopeFactory("savings", 125)
 }
 
 seedData()
