@@ -7,8 +7,9 @@ const {
   deleteAllEnvelopesFromDatabase,
 } = require("../helpers/db-helpers")
 
-function handleEnvelopeId(req, res, next, id) {
-  const envelope = getEnvelopeFromDatabaseById(id)
+async function handleEnvelopeId(req, res, next, id) {
+  id = Number(id)
+  const envelope = await getEnvelopeFromDatabaseById(id)
   if (envelope) {
     req.envelope = envelope
     req.envelopeId = id
@@ -18,31 +19,31 @@ function handleEnvelopeId(req, res, next, id) {
   res.status(404).send("Envelope wast not found from Id.")
 }
 
-function getEnvelopes(req, res, next) {
-  res.send(getAllEnvelopesFromDatabase())
+async function getEnvelopes(req, res, next) {
+  res.send(JSON.stringify(await getAllEnvelopesFromDatabase()))
 }
 
 function getEnvelopeById(req, res, next) {
   const envelope = req.envelope
   if (envelope) {
-    res.send(envelope)
+    res.send(JSON.stringify(envelope))
     return
   }
   res.status(404).send("Not found")
 }
 
-function createEnvelope(req, res, next) {
-  const envelope = addEnvelopeToDatabase(req.body)
+async function createEnvelope(req, res, next) {
+  const envelope = await addEnvelopeToDatabase(req.body)
   if (envelope) {
-    res.status(201).send(envelope)
+    res.status(201).send(JSON.stringify(envelope))
     return
   }
   res.status(400).send()
 }
 
-function updateEnvelope(req, res, next) {
+async function updateEnvelope(req, res, next) {
   req.body.id = req.envelopeId
-  const envelope = updateEnvelopeInDatabase(req.body)
+  const envelope = await updateEnvelopeInDatabase(req.body)
   if (envelope) {
     res.send(envelope)
     return
@@ -50,13 +51,13 @@ function updateEnvelope(req, res, next) {
   res.status(404).send()
 }
 
-function deleteEnvelopes(req, res, next) {
-  deleteAllEnvelopesFromDatabase()
+async function deleteEnvelopes(req, res, next) {
+  await deleteAllEnvelopesFromDatabase()
   res.status(204).send()
 }
 
-function deleteEnvelopeById(req, res, next) {
-  const isDeleted = deleteEnvelopeFromDatabasebyId(req.envelopeId)
+async function deleteEnvelopeById(req, res, next) {
+  const isDeleted = await deleteEnvelopeFromDatabasebyId(req.envelopeId)
   if (isDeleted) {
     res.status(204).send()
     return

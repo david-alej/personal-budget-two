@@ -17,7 +17,7 @@ async function getEnvelopeFromDatabaseById(id) {
     "SELECT * FROM envelopes WHERE id = $1::integer",
     [id]
   )
-  return envelopeQuery.rows
+  return envelopeQuery.rows[0]
 }
 
 async function addEnvelopeToDatabase(instance) {
@@ -46,13 +46,20 @@ const updateEnvelopeInDatabase = async (instance) => {
     }
     if (model.isValid(adjustedEnvelope)) {
       const update = await model.data.query(
-        "UPDATE envelopes SET category = $2, allotment = $3 WHERE id = $1",
+        "UPDATE envelopes SET category = $2, allotment = $3 WHERE id = $1 RETURNING *;",
         [instance.id, instance.category, instance.allotment]
       )
-      return true
+      return update.rows[0]
     }
   }
-  return false
+  return null
+}
+
+const deleteAllEnvelopesFromDatabase = async () => {
+  const model = db.allEnvelopes
+  const allDeleted = await model.data.query("DELETE FROM envelopes WHERE true;")
+  const data = model.data.query("SELECT * FROM envelopes;")
+  return await data.rows
 }
 
 const deleteEnvelopeFromDatabasebyId = async (id) => {
@@ -65,13 +72,6 @@ const deleteEnvelopeFromDatabasebyId = async (id) => {
     return true
   }
   return false
-}
-
-const deleteAllEnvelopesFromDatabase = async () => {
-  const model = db.allEnvelopes
-  const allDeleted = await model.data.query("DELETE FROM envelopes WHERE true;")
-  const data = model.data.query("SELECT * FROM envelopes;")
-  return await data.rows
 }
 
 module.exports = {

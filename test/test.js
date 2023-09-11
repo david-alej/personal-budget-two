@@ -1,6 +1,8 @@
 const { assert } = require("chai")
 const request = require("supertest")
 
+const app = require("../server")
+
 const {
   resetDatabase,
   getAllEnvelopesFromDatabase,
@@ -10,6 +12,7 @@ const {
   deleteAllEnvelopesFromDatabase,
   deleteEnvelopeFromDatabasebyId,
 } = require("../server/helpers/db-helpers")
+const { describe } = require("mocha")
 
 describe("Database helpers", () => {
   beforeEach(async () => {
@@ -30,7 +33,7 @@ describe("Database helpers", () => {
       const expected = { id: 2, category: "orderingOut", allotment: 50 }
       const id = "2"
       const result = await getEnvelopeFromDatabaseById(id)
-      assert.deepEqual(result[0], expected)
+      assert.deepEqual(result, expected)
     })
   })
 
@@ -45,10 +48,10 @@ describe("Database helpers", () => {
 
   describe("PUT helpers", () => {
     it("update envelope with id = 3", async () => {
-      const expected = true
-      const envelope = { id: 3, category: "savings", allotment: 100 }
+      const expected = { id: 3, category: "savings", allotment: 100 }
+      const envelope = expected
       const result = await updateEnvelopeInDatabase(envelope)
-      assert.strictEqual(result, expected)
+      assert.deepEqual(result, expected)
     })
   })
 
@@ -65,6 +68,58 @@ describe("Database helpers", () => {
       const id = 2
       const result = await deleteEnvelopeFromDatabasebyId(id)
       assert.strictEqual(result, expected)
+    })
+  })
+})
+
+describe("/envelopes", () => {
+  beforeEach(async () => {
+    await resetDatabase()
+  })
+  describe("GET requests", () => {
+    it("get all envelopes", async () => {
+      const expected = [
+        { id: 1, category: "groceries", allotment: 150 },
+        { id: 2, category: "orderingOut", allotment: 50 },
+        { id: 3, category: "savings", allotment: 125 },
+      ]
+      const response = await request(app).get("/api/envelopes")
+      assert.deepEqual(JSON.parse(response.text), expected)
+    })
+
+    it("get envelope with id = 2", async () => {
+      const expected = { id: 2, category: "orderingOut", allotment: 50 }
+      const id = "2"
+      const response = await request(app)
+        .get("/api/envelopes/" + id)
+        .send()
+      assert.deepEqual(JSON.parse(response.text), expected)
+    })
+  })
+
+  describe("POST requests", () => {
+    it("create an games envelope with 70 dollars", async () => {
+      const expected = { category: "games", allotment: 70 }
+      const envelope = expected
+      const response = await request(app)
+        .post("/api/envelopes")
+        .type("form")
+        .send(envelope)
+      assert.include(JSON.parse(response.text), expected)
+    })
+  })
+
+  describe("DELETE requests", () => {
+    it("deletes all envelopes", async () => {
+      const expected = 204
+      const response = await request(app).delete("/api/envelopes").send()
+      assert.strictEqual(response.status, expected)
+    })
+
+    it("delete envelope with id = 2", async () => {
+      const expected = 204
+      const response = await request(app).delete("/api/envelopes/2").send()
+      assert.strictEqual(response.status, expected)
     })
   })
 })

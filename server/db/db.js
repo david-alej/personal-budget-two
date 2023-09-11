@@ -68,13 +68,13 @@ async function seedData() {
   await envelopeFactory("savings", 125)
 }
 
-// const dataExists = async () => {
-//   const query = await pool.query("SELECT * FROM envelopes;")
-//   return query.rows.length !== 0
-// }
+const dataExists = async () => {
+  const query = await pool.query("SELECT * FROM envelopes;")
+  return query.rows.length !== 0
+}
 
-// if (!dataExists) {
-//   seedData()
-// }
+if (!dataExists) {
+  seedData()
+}
 
 module.exports = { db, seedData }
