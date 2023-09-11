@@ -72,10 +72,13 @@ describe("Database helpers", () => {
   })
 })
 
+// --------------------------------------------------------------------------
+
 describe("/envelopes", () => {
   beforeEach(async () => {
     await resetDatabase()
   })
+
   describe("GET requests", () => {
     it("get all envelopes", async () => {
       const expected = [
@@ -95,6 +98,24 @@ describe("/envelopes", () => {
         .send()
       assert.deepEqual(JSON.parse(response.text), expected)
     })
+
+    it("get envelope with invalid id = 87", async () => {
+      const expected = "There is no envelope with the id"
+      const id = "87"
+      const response = await request(app)
+        .get("/api/envelopes/" + id)
+        .send()
+      assert(response.text, expected)
+    })
+
+    it("get envelope with invalid id = hi", async () => {
+      const expected = "Envelope's id must be a number."
+      const id = "hi"
+      const response = await request(app)
+        .get("/api/envelopes/" + id)
+        .send()
+      assert(response.text, expected)
+    })
   })
 
   describe("POST requests", () => {
@@ -106,6 +127,39 @@ describe("/envelopes", () => {
         .type("form")
         .send(envelope)
       assert.include(JSON.parse(response.text), expected)
+    })
+
+    it("invalid request body missing one or both of category and allotment", async () => {
+      const expected =
+        "Make sure to include both category and allotment on the request body"
+      const requestBody = { allotment: 50 }
+      const response = await request(app)
+        .post("/api/envelopes")
+        .type("form")
+        .send(requestBody)
+      assert.strictEqual(response.text, expected)
+    })
+
+    it("invalid request body having allotment as a string", async () => {
+      const expected =
+        "Make sure that category is a string and allotment is a number"
+      const requestBody = { category: "revnovations", allotment: "no" }
+      const response = await request(app)
+        .post("/api/envelopes")
+        .type("form")
+        .send(requestBody)
+      assert.strictEqual(response.text, expected)
+    })
+
+    it("invalid request body having category as a number", async () => {
+      const expected =
+        "Make sure that category is a string and allotment is a number"
+      const requestBody = { category: 5, allotment: 5 }
+      const response = await request(app)
+        .post("/api/envelopes")
+        .type("form")
+        .send(requestBody)
+      assert.strictEqual(response.text, expected)
     })
   })
 

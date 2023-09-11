@@ -8,6 +8,10 @@ const {
 } = require("../helpers/db-helpers")
 
 async function handleEnvelopeId(req, res, next, id) {
+  if (isNaN(parseFloat(id)) || !isFinite(id)) {
+    res.status(404).send("Envelope's id must be a number.")
+    return
+  }
   id = Number(id)
   const envelope = await getEnvelopeFromDatabaseById(id)
   if (envelope) {
@@ -16,7 +20,7 @@ async function handleEnvelopeId(req, res, next, id) {
     next()
     return
   }
-  res.status(404).send("Envelope wast not found from Id.")
+  res.status(404).send("There is no envelope with the id")
 }
 
 async function getEnvelopes(req, res, next) {
@@ -30,6 +34,31 @@ function getEnvelopeById(req, res, next) {
     return
   }
   res.status(404).send("Not found")
+}
+
+function checkBody(req, res, next) {
+  if (
+    !Object.hasOwn(req.body, "allotment") ||
+    !Object.hasOwn(req.body, "category")
+  ) {
+    res
+      .status(400)
+      .send(
+        "Make sure to include both category and allotment on the request body"
+      )
+    return
+  }
+  if (
+    typeof req.body.category !== "string" ||
+    isNaN(parseFloat(req.body.allotment)) ||
+    !isFinite(req.body.allotment)
+  ) {
+    res
+      .status(400)
+      .send("Make sure that category is a string and allotment is a number")
+    return
+  }
+  next()
 }
 
 async function createEnvelope(req, res, next) {
@@ -69,6 +98,7 @@ module.exports = {
   handleEnvelopeId,
   getEnvelopes,
   getEnvelopeById,
+  checkBody,
   createEnvelope,
   updateEnvelope,
   deleteEnvelopes,

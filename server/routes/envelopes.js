@@ -5,6 +5,7 @@ const {
   handleEnvelopeId,
   getEnvelopes,
   getEnvelopeById,
+  checkBody,
   createEnvelope,
   updateEnvelope,
   deleteEnvelopes,
@@ -17,9 +18,9 @@ envelopesRouter.get("/", getEnvelopes)
 
 envelopesRouter.get("/:envelopeId", getEnvelopeById)
 
-envelopesRouter.post("/", createEnvelope)
+envelopesRouter.post("/", checkBody, createEnvelope)
 
-envelopesRouter.put("/:envelopeId", updateEnvelope)
+envelopesRouter.put("/:envelopeId", checkBody, updateEnvelope)
 
 envelopesRouter.delete("/", deleteEnvelopes)
 
