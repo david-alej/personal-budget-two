@@ -1,15 +1,20 @@
-const db = require("../db/db")
+const { db, seedData } = require("../db/db")
+
+async function resetDatabase() {
+  const pool = db.allEnvelopes.data
+  await pool.query("DELETE FROM envelopes WHERE true;")
+  await pool.query("ALTER SEQUENCE envelopes_id_seq RESTART WITH 1;")
+  await seedData()
+}
 
 async function getAllEnvelopesFromDatabase() {
-  const envelopesQuery = await db.allEnvelopes.data.query(
-    "SELECT * FROM envelopes;"
-  )
-  return envelopesQuery.rows
+  const envelopes = await db.allEnvelopes.data.query("SELECT * FROM envelopes;")
+  return envelopes.rows
 }
 
 async function getEnvelopeFromDatabaseById(id) {
   const envelopeQuery = await db.allEnvelopes.data.query(
-    "SELECT * FROM envelopes WHERE id = $1",
+    "SELECT * FROM envelopes WHERE id = $1::integer",
     [id]
   )
   return envelopeQuery.rows
@@ -22,46 +27,55 @@ async function addEnvelopeToDatabase(instance) {
       "INSERT INTO envelopes (category, allotment) VALUES ($1, $2) RETURNING *;",
       [instance.category, instance.allotment]
     )
-    return insertEnvelopeQuery.rows
+    return insertEnvelopeQuery.rows[0]
   }
 }
 
-const updateEnvelopeInDatabase = (instance) => {
+const updateEnvelopeInDatabase = async (instance) => {
   const model = db.allEnvelopes
-  const envelopeIndex = model.data.findIndex((element) => {
-    return element.id === instance.id
-  })
-  if (envelopeIndex > -1) {
-    model.allotmentRemaining += model.data[envelopeIndex]
-    if (model.isValid(instance)) {
-      model.data[envelopeIndex] = instance
-      return model.data[envelopeIndex]
+  const envelopeAllotmentBeforeUpdate = await model.data.query(
+    "SELECT allotment FROM envelopes WHERE id = $1;",
+    [instance.id]
+  )
+  if (envelopeAllotmentBeforeUpdate.rows.length) {
+    const adjustedEnvelope = {
+      id: instance.id,
+      category: instance.category,
+      allotment:
+        instance.allotment - envelopeAllotmentBeforeUpdate.rows[0].allotment,
+    }
+    if (model.isValid(adjustedEnvelope)) {
+      const update = await model.data.query(
+        "UPDATE envelopes SET category = $2, allotment = $3 WHERE id = $1",
+        [instance.id, instance.category, instance.allotment]
+      )
+      return true
     }
   }
-  return null
+  return false
 }
 
-const deleteEnvelopeFromDatabasebyId = (id) => {
+const deleteEnvelopeFromDatabasebyId = async (id) => {
   const model = db.allEnvelopes
-  let index = model.data.findIndex((element) => {
-    return element.id === id
-  })
-  if (index !== -1) {
-    model.allotmentRemaining += model.data[index].allotment
-    model.data.splice(index, 1)
+  const envelopeDeleted = await model.data.query(
+    "DELETE FROM envelopes WHERE id = $1 RETURNING *;",
+    [id]
+  )
+  if (envelopeDeleted.rows) {
     return true
   }
   return false
 }
 
-const deleteAllEnvelopesFromDatabase = () => {
+const deleteAllEnvelopesFromDatabase = async () => {
   const model = db.allEnvelopes
-  model.data = []
-  model.allotmentRemaining = model.totalAllotment
-  return model.data
+  const allDeleted = await model.data.query("DELETE FROM envelopes WHERE true;")
+  const data = model.data.query("SELECT * FROM envelopes;")
+  return await data.rows
 }
 
 module.exports = {
+  resetDatabase,
   getAllEnvelopesFromDatabase,
   getEnvelopeFromDatabaseById,
   addEnvelopeToDatabase,

@@ -45,6 +45,7 @@ const db = {
   allEnvelopes: {
     data: pool,
     isValid: isValidEnvelope,
+    totalAllotment,
   },
 }
 
@@ -61,12 +62,19 @@ const envelopeFactory = async (category, allotment) => {
   }
 }
 
-function seedData() {
-  envelopeFactory("groceries", 150)
-  envelopeFactory("orderingOut", 50)
-  envelopeFactory("savings", 125)
+async function seedData() {
+  await envelopeFactory("groceries", 150)
+  await envelopeFactory("orderingOut", 50)
+  await envelopeFactory("savings", 125)
 }
 
-seedData()
+// const dataExists = async () => {
+//   const query = await pool.query("SELECT * FROM envelopes;")
+//   return query.rows.length !== 0
+// }
 
-module.exports = db
+// if (!dataExists) {
+//   seedData()
+// }
+
+module.exports = { db, seedData }
