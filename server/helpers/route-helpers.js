@@ -9,7 +9,7 @@ const {
 
 async function handleEnvelopeId(req, res, next, id) {
   if (isNaN(parseFloat(id)) || !isFinite(id)) {
-    res.status(404).send("Envelope's id must be a number.")
+    res.status(400).send("Envelope's id must be a number.")
     return
   }
   id = Number(id)
@@ -20,7 +20,7 @@ async function handleEnvelopeId(req, res, next, id) {
     next()
     return
   }
-  res.status(404).send("There is no envelope with the id")
+  res.status(404).send("There is no envelope with that id")
 }
 
 async function getEnvelopes(req, res, next) {
@@ -49,7 +49,8 @@ function checkBody(req, res, next) {
     return
   }
   if (
-    typeof req.body.category !== "string" ||
+    !isNaN(parseFloat(req.body.category)) ||
+    isFinite(req.body.category) ||
     isNaN(parseFloat(req.body.allotment)) ||
     !isFinite(req.body.allotment)
   ) {
@@ -67,14 +68,22 @@ async function createEnvelope(req, res, next) {
     res.status(201).send(JSON.stringify(envelope))
     return
   }
-  res.status(400).send()
+
+  if (envelope === 0) {
+    res
+      .status(400)
+      .send("Make sure that category is not a duplicate of existing data")
+    return
+  }
+  res.status(400).send("Make sure that the request body is valid")
+  return
 }
 
 async function updateEnvelope(req, res, next) {
   req.body.id = req.envelopeId
   const envelope = await updateEnvelopeInDatabase(req.body)
   if (envelope) {
-    res.send(envelope)
+    res.send(JSON.stringify(envelope))
     return
   }
   res.status(404).send()

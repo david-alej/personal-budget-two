@@ -14,6 +14,7 @@ const {
 } = require("../server/helpers/db-helpers")
 const { describe } = require("mocha")
 
+// Database helpers
 describe("Database helpers", () => {
   beforeEach(async () => {
     await resetDatabase()
@@ -73,11 +74,16 @@ describe("Database helpers", () => {
 })
 
 // --------------------------------------------------------------------------
-
+// HTTP requests
 describe("/envelopes", () => {
   beforeEach(async () => {
     await resetDatabase()
   })
+  const ok = 200
+  const created = 201
+  const noContent = 204
+  const badRequest = 400
+  const notFound = 404
 
   describe("GET requests", () => {
     it("get all envelopes", async () => {
@@ -88,6 +94,7 @@ describe("/envelopes", () => {
       ]
       const response = await request(app).get("/api/envelopes")
       assert.deepEqual(JSON.parse(response.text), expected)
+      assert.equal(response.status, 200)
     })
 
     it("get envelope with id = 2", async () => {
@@ -97,15 +104,17 @@ describe("/envelopes", () => {
         .get("/api/envelopes/" + id)
         .send()
       assert.deepEqual(JSON.parse(response.text), expected)
+      assert.equal(response.status, 200)
     })
 
     it("get envelope with invalid id = 87", async () => {
-      const expected = "There is no envelope with the id"
+      const expected = "There is no envelope with that id"
       const id = "87"
       const response = await request(app)
         .get("/api/envelopes/" + id)
         .send()
       assert(response.text, expected)
+      assert.equal(response.status, notFound)
     })
 
     it("get envelope with invalid id = hi", async () => {
@@ -115,18 +124,20 @@ describe("/envelopes", () => {
         .get("/api/envelopes/" + id)
         .send()
       assert(response.text, expected)
+      assert.equal(response.status, badRequest)
     })
   })
 
   describe("POST requests", () => {
     it("create an games envelope with 70 dollars", async () => {
-      const expected = { category: "games", allotment: 70 }
+      const expected = { category: "games", allotment: 500 }
       const envelope = expected
       const response = await request(app)
         .post("/api/envelopes")
         .type("form")
         .send(envelope)
       assert.include(JSON.parse(response.text), expected)
+      assert.equal(response.status, created)
     })
 
     it("invalid request body missing one or both of category and allotment", async () => {
@@ -138,6 +149,7 @@ describe("/envelopes", () => {
         .type("form")
         .send(requestBody)
       assert.strictEqual(response.text, expected)
+      assert.equal(response.status, badRequest)
     })
 
     it("invalid request body having allotment as a string", async () => {
@@ -149,6 +161,7 @@ describe("/envelopes", () => {
         .type("form")
         .send(requestBody)
       assert.strictEqual(response.text, expected)
+      assert.equal(response.status, badRequest)
     })
 
     it("invalid request body having category as a number", async () => {
@@ -160,6 +173,32 @@ describe("/envelopes", () => {
         .type("form")
         .send(requestBody)
       assert.strictEqual(response.text, expected)
+      assert.equal(response.status, badRequest)
+    })
+
+    it("invalid request body violating the unique constraint on the table", async () => {
+      const expected =
+        "Make sure that category is not a duplicate of existing data"
+      const requestBody = { category: "savings", allotment: 5 }
+      const response = await request(app)
+        .post("/api/envelopes")
+        .type("form")
+        .send(requestBody)
+      assert.strictEqual(response.text, expected)
+      assert.equal(response.status, badRequest)
+    })
+  })
+
+  describe("PUT requests", () => {
+    it("update an envelope with id = 3 to be games with 80 dollars", async () => {
+      const expected = { id: 3, category: "games", allotment: 80 }
+      const envelope = expected
+      const response = await request(app)
+        .put("/api/envelopes/3")
+        .type("form")
+        .send(envelope)
+      assert.deepEqual(JSON.parse(response.text), expected)
+      assert.equal(response.status, ok)
     })
   })
 
@@ -168,12 +207,14 @@ describe("/envelopes", () => {
       const expected = 204
       const response = await request(app).delete("/api/envelopes").send()
       assert.strictEqual(response.status, expected)
+      assert.equal(response.status, noContent)
     })
 
     it("delete envelope with id = 2", async () => {
       const expected = 204
       const response = await request(app).delete("/api/envelopes/2").send()
       assert.strictEqual(response.status, expected)
+      assert.equal(response.status, noContent)
     })
   })
 })

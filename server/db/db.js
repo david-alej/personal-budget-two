@@ -13,6 +13,11 @@ async function isValidEnvelope(instance) {
   instance.id = instance.id || ""
   instance.category = instance.category || ""
   instance.allotment = instance.allotment || ""
+  if (!isNaN(parseFloat(instance.allotment)) && isFinite(instance.allotment)) {
+    instance.allotment = Number(instance.allotment)
+  } else {
+    throw new Error("Minion's salary must be a number.")
+  }
   if (
     typeof instance.id !== "string" ||
     typeof instance.category !== "string" ||
@@ -22,16 +27,11 @@ async function isValidEnvelope(instance) {
       "Envelope's id and category must be strings and allotment must be a number"
     )
   }
-  if (!isNaN(parseFloat(instance.allotment)) && isFinite(instance.allotment)) {
-    instance.allotment = Number(instance.allotment)
-  } else {
-    throw new Error("Minion's salary must be a number.")
-  }
 
   const allotmentUsedQuery = await pool.query(
     "SELECT sum(allotment) FROM  envelopes;"
   )
-  const allotmentUsed = allotmentUsedQuery.rows
+  const allotmentUsed = allotmentUsedQuery.rows[0]
   const allotmentRemaining = totalAllotment - allotmentUsed - instance.allotment
   if (allotmentRemaining < 0) {
     throw new Error(

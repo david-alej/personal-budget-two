@@ -22,13 +22,25 @@ async function getEnvelopeFromDatabaseById(id) {
 
 async function addEnvelopeToDatabase(instance) {
   const model = db.allEnvelopes
-  if (model.isValid(instance)) {
-    const insertEnvelopeQuery = await model.data.query(
-      "INSERT INTO envelopes (category, allotment) VALUES ($1, $2) RETURNING *;",
-      [instance.category, instance.allotment]
+  const instanceIsValid = await model.isValid(instance)
+  if (instanceIsValid) {
+    const allCategories = await model.data.query(
+      "SELECT category FROM envelopes;"
     )
-    return insertEnvelopeQuery.rows[0]
+    const newCategoryInData = allCategories.rows.some((obj) => {
+      if (obj.category === instance.category) return true
+      return false
+    })
+    if (!newCategoryInData) {
+      const insertEnvelopeQuery = await model.data.query(
+        "INSERT INTO envelopes (category, allotment) VALUES ($1, $2) RETURNING *;",
+        [instance.category, instance.allotment]
+      )
+      return insertEnvelopeQuery.rows[0]
+    }
+    return 0
   }
+  return null
 }
 
 const updateEnvelopeInDatabase = async (instance) => {
