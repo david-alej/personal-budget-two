@@ -22,8 +22,8 @@ async function getEnvelopeFromDatabaseById(id) {
 
 async function addEnvelopeToDatabase(instance) {
   const model = db.allEnvelopes
-  const instanceIsValid = await model.isValid(instance)
-  if (instanceIsValid) {
+  const instanceIsInvalid = await model.isInvalid(instance)
+  if (!instanceIsInvalid) {
     const allCategories = await model.data.query(
       "SELECT category FROM envelopes;"
     )
@@ -38,9 +38,9 @@ async function addEnvelopeToDatabase(instance) {
       )
       return insertEnvelopeQuery.rows[0]
     }
-    return 0
+    return "Make sure that category is not a duplicate of existing data"
   }
-  return null
+  return instanceIsInvalid
 }
 
 const updateEnvelopeInDatabase = async (instance) => {
@@ -56,15 +56,17 @@ const updateEnvelopeInDatabase = async (instance) => {
       allotment:
         instance.allotment - envelopeAllotmentBeforeUpdate.rows[0].allotment,
     }
-    if (model.isValid(adjustedEnvelope)) {
+    const adjustedEnvelopeIsInvalid = await model.isInvalid(adjustedEnvelope)
+    if (!adjustedEnvelopeIsInvalid) {
       const update = await model.data.query(
         "UPDATE envelopes SET category = $2, allotment = $3 WHERE id = $1 RETURNING *;",
         [instance.id, instance.category, instance.allotment]
       )
       return update.rows[0]
     }
+    return adjustedEnvelopeIsInvalid
   }
-  return null
+  return "Make sure that the request body is valid"
 }
 
 const deleteAllEnvelopesFromDatabase = async () => {

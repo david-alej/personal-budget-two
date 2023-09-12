@@ -130,7 +130,7 @@ describe("/envelopes", () => {
 
   describe("POST requests", () => {
     it("create an games envelope with 70 dollars", async () => {
-      const expected = { category: "games", allotment: 500 }
+      const expected = { category: "games", allotment: 70 }
       const envelope = expected
       const response = await request(app)
         .post("/api/envelopes")
@@ -199,6 +199,18 @@ describe("/envelopes", () => {
         .send(envelope)
       assert.deepEqual(JSON.parse(response.text), expected)
       assert.equal(response.status, ok)
+    })
+
+    it("Invalid request body with allotment exceeding upper limit", async () => {
+      const expected =
+        "With new allotment, the total used allotment has exceeded the total allotment limit, make new allotement less"
+      const envelope = { category: "games", allotment: 2000 }
+      const response = await request(app)
+        .put("/api/envelopes/3")
+        .type("form")
+        .send(envelope)
+      assert.include(response.text, expected)
+      assert.equal(response.status, badRequest)
     })
   })
 

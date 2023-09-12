@@ -9,57 +9,48 @@ const pool = new Pool({
 
 let totalAllotment = 500
 
-async function isValidEnvelope(instance) {
-  instance.id = instance.id || ""
-  instance.category = instance.category || ""
-  instance.allotment = instance.allotment || ""
-  if (!isNaN(parseFloat(instance.allotment)) && isFinite(instance.allotment)) {
-    instance.allotment = Number(instance.allotment)
-  } else {
-    throw new Error("Minion's salary must be a number.")
+async function isInvalidEnvelope(instance) {
+  if (
+    !Object.hasOwn(instance, "allotment") ||
+    !Object.hasOwn(instance, "category")
+  ) {
+    return "Make sure to include both category and allotment on the request body"
   }
   if (
-    typeof instance.id !== "string" ||
-    typeof instance.category !== "string" ||
-    typeof instance.allotment !== "number"
+    !isNaN(parseFloat(instance.category)) ||
+    isFinite(instance.category) ||
+    isNaN(parseFloat(instance.allotment)) ||
+    !isFinite(instance.allotment)
   ) {
-    throw new Error(
-      "Envelope's id and category must be strings and allotment must be a number"
-    )
+    return "Make sure that category is a string and allotment is a number"
   }
-
+  instance.allotment = Number(instance.allotment)
   const allotmentUsedQuery = await pool.query(
     "SELECT sum(allotment) FROM  envelopes;"
   )
-  const allotmentUsed = allotmentUsedQuery.rows[0]
+  const allotmentUsed = Number(allotmentUsedQuery.rows[0].sum)
   const allotmentRemaining = totalAllotment - allotmentUsed - instance.allotment
   if (allotmentRemaining < 0) {
-    throw new Error(
-      `Envelope' allotment is too much by ${-1 * allotmentRemaining} $`
-    )
+    return "With new allotment, the total used allotment has exceeded the total allotment limit, make new allotement less"
   }
-  return true
+  return false
 }
 
 const db = {
   allEnvelopes: {
     data: pool,
-    isValid: isValidEnvelope,
+    isInvalid: isInvalidEnvelope,
     totalAllotment,
   },
 }
 
 // Seeding data into envelopes table
 const envelopeFactory = async (category, allotment) => {
-  try {
-    db.allEnvelopes.isValid({ category, allotment })
-    const res = await pool.query(
-      "INSERT INTO envelopes (category, allotment) VALUES ($1, $2)",
-      [category, allotment]
-    )
-  } catch (err) {
-    console.error(err)
-  }
+  await db.allEnvelopes.isInvalid({ category, allotment })
+  const res = await pool.query(
+    "INSERT INTO envelopes (category, allotment) VALUES ($1, $2)",
+    [category, allotment]
+  )
 }
 
 async function seedData() {

@@ -36,57 +36,23 @@ function getEnvelopeById(req, res, next) {
   res.status(404).send("Not found")
 }
 
-function checkBody(req, res, next) {
-  if (
-    !Object.hasOwn(req.body, "allotment") ||
-    !Object.hasOwn(req.body, "category")
-  ) {
-    res
-      .status(400)
-      .send(
-        "Make sure to include both category and allotment on the request body"
-      )
-    return
-  }
-  if (
-    !isNaN(parseFloat(req.body.category)) ||
-    isFinite(req.body.category) ||
-    isNaN(parseFloat(req.body.allotment)) ||
-    !isFinite(req.body.allotment)
-  ) {
-    res
-      .status(400)
-      .send("Make sure that category is a string and allotment is a number")
-    return
-  }
-  next()
-}
-
 async function createEnvelope(req, res, next) {
-  const envelope = await addEnvelopeToDatabase(req.body)
-  if (envelope) {
-    res.status(201).send(JSON.stringify(envelope))
+  const envelopeQuery = await addEnvelopeToDatabase(req.body)
+  if (typeof envelopeQuery === "object") {
+    res.status(201).send(JSON.stringify(envelopeQuery))
     return
   }
-
-  if (envelope === 0) {
-    res
-      .status(400)
-      .send("Make sure that category is not a duplicate of existing data")
-    return
-  }
-  res.status(400).send("Make sure that the request body is valid")
-  return
+  res.status(400).send(envelopeQuery)
 }
 
 async function updateEnvelope(req, res, next) {
   req.body.id = req.envelopeId
-  const envelope = await updateEnvelopeInDatabase(req.body)
-  if (envelope) {
-    res.send(JSON.stringify(envelope))
+  const envelopeQuery = await updateEnvelopeInDatabase(req.body)
+  if (typeof envelopeQuery === "object") {
+    res.send(JSON.stringify(envelopeQuery))
     return
   }
-  res.status(404).send()
+  res.status(400).send(envelopeQuery)
 }
 
 async function deleteEnvelopes(req, res, next) {
@@ -107,7 +73,6 @@ module.exports = {
   handleEnvelopeId,
   getEnvelopes,
   getEnvelopeById,
-  checkBody,
   createEnvelope,
   updateEnvelope,
   deleteEnvelopes,
