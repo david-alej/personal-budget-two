@@ -221,7 +221,6 @@ describe("/envelopes", () => {
         .post("/api/envelopes/transfer/2/5")
         .type("form")
         .send(transferFunds)
-      console.log(response.text)
       assert.include(response.text, expected)
       assert.strictEqual(response.status, notFound)
     })
@@ -247,6 +246,17 @@ describe("/envelopes", () => {
       assert.include(response.text, expected)
       assert.strictEqual(response.status, badRequest)
     })
+
+    it("invalid transfer of funds where the funds property do not exist in the request body", async () => {
+      const expected = "The Funds"
+      const transferFunds = { yo: "yo" }
+      const response = await request(app)
+        .post("/api/envelopes/transfer/3/1")
+        .type("form")
+        .send(transferFunds)
+      assert.include(response.text, expected)
+      assert.strictEqual(response.status, badRequest)
+    })
   })
 
   describe("PUT requests", () => {
@@ -261,7 +271,7 @@ describe("/envelopes", () => {
       assert.equal(response.status, ok)
     })
 
-    it("Invalid request body with allotment exceeding upper limit", async () => {
+    it("Invalid update where request body with allotment exceeding upper limit", async () => {
       const expected =
         "With new allotment, the total used allotment has exceeded the total allotment limit, make new allotement less"
       const envelope = { category: "games", allotment: 2000 }
@@ -271,6 +281,39 @@ describe("/envelopes", () => {
         .send(envelope)
       assert.include(response.text, expected)
       assert.equal(response.status, badRequest)
+    })
+
+    it("Update total allotment changing it from 500 to 600", async () => {
+      const expected = 600
+      const totalAllotment = { totalAllotment: 600 }
+      const response = await request(app)
+        .put("/api/envelopes/totalAllotment")
+        .type("form")
+        .send(totalAllotment)
+      assert.equal(JSON.parse(response.text), expected)
+      assert.strictEqual(response.status, ok)
+    })
+
+    it("Update total allotment with non-numeric total allotment = yo", async () => {
+      const expected = "The new Total Allotment that is equal to"
+      const totalAllotment = { totalAllotment: "yo" }
+      const response = await request(app)
+        .put("/api/envelopes/totalAllotment")
+        .type("form")
+        .send(totalAllotment)
+      assert.include(response.text, expected)
+      assert.strictEqual(response.status, badRequest)
+    })
+
+    it("Update total allotment with no totalAllotment property in request body", async () => {
+      const expected = "The new Total Allotment that is equal to"
+      const totalAllotment = { yo: "yo" }
+      const response = await request(app)
+        .put("/api/envelopes/totalAllotment")
+        .type("form")
+        .send(totalAllotment)
+      assert.include(response.text, expected)
+      assert.strictEqual(response.status, badRequest)
     })
   })
 

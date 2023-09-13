@@ -4,6 +4,7 @@ const {
   addEnvelopeToDatabase,
   transferFunds,
   updateEnvelopeInDatabase,
+  updateEnvelopesTotalAllotment,
   deleteEnvelopeFromDatabasebyId,
   deleteAllEnvelopesFromDatabase,
 } = require("../helpers/db-helpers")
@@ -64,9 +65,7 @@ async function envelopeTransfer(req, res, next) {
     }
   }
   const response = await transferFunds(fromEnvelopeId, toEnvelopeId, funds)
-  // console.log(response)
   if (typeof response[0] === "object" && typeof response[1] === "object") {
-    // console.log("yeya")
     res.send(JSON.stringify(response))
     return
   }
@@ -76,7 +75,6 @@ async function envelopeTransfer(req, res, next) {
     res.status(404).send(response)
     return
   }
-  // console.log("heya")
   res.status(400).send(response)
 }
 
@@ -88,6 +86,20 @@ async function updateEnvelope(req, res, next) {
     return
   }
   res.status(400).send(envelopeQuery)
+}
+
+async function updateTotalAllotment(req, res, next) {
+  let newTotalAllotment = req.body.totalAllotment
+  if (isNaN(parseFloat(newTotalAllotment)) || !isFinite(newTotalAllotment)) {
+    res
+      .status(400)
+      .send(
+        `The new Total Allotment that is equal to ${newTotalAllotment} must be a number.`
+      )
+    return
+  }
+  newTotalAllotment = updateEnvelopesTotalAllotment(newTotalAllotment)
+  res.send(JSON.stringify(newTotalAllotment))
 }
 
 async function deleteEnvelopes(req, res, next) {
@@ -111,6 +123,7 @@ module.exports = {
   createEnvelope,
   envelopeTransfer,
   updateEnvelope,
+  updateTotalAllotment,
   deleteEnvelopes,
   deleteEnvelopeById,
 }
