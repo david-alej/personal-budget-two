@@ -43,12 +43,38 @@ async function addEnvelopeToDatabase(instance) {
   return instanceIsInvalid
 }
 
+const transferFunds = async (fromId, toId, funds) => {
+  let fromEnvelope = await getEnvelopeFromDatabaseById(fromId)
+  let toEnvelope = await getEnvelopeFromDatabaseById(toId)
+  if (!fromEnvelope) {
+    return `Not found: The From envelope with id = ${fromId} was not found`
+  } else if (!toEnvelope) {
+    return `Not found: The To envelope with id = ${toId} was not found`
+  }
+  // note that when you subtract a numeric string and a number there is actual subtraction is done but when you add them it will result in concatenate of string
+  fromEnvelope.allotment -= funds
+  toEnvelope.allotment -= -funds
+  // console.log(fromEnvelope.allotment)
+  if (fromEnvelope.allotment < 0) {
+    return "Make sure that the funds transfered are equal or less than the allotment that the from envelope has"
+  }
+
+  fromEnvelope = await updateEnvelopeInDatabase(fromEnvelope)
+  toEnvelope = await updateEnvelopeInDatabase(toEnvelope)
+  // console.log(typeof fromEnvelope, typeof toEnvelope)
+  if (typeof fromEnvelope === "object" && typeof toEnvelope === "object") {
+    // console.log("hi")
+    return [fromEnvelope, toEnvelope]
+  }
+}
+
 const updateEnvelopeInDatabase = async (instance) => {
   const model = db.allEnvelopes
   const envelopeAllotmentBeforeUpdate = await model.data.query(
     "SELECT allotment FROM envelopes WHERE id = $1;",
     [instance.id]
   )
+  // console.log(envelopeAllotmentBeforeUpdate.rows, instance)
   if (envelopeAllotmentBeforeUpdate.rows.length) {
     const adjustedEnvelope = {
       id: instance.id,
@@ -56,14 +82,17 @@ const updateEnvelopeInDatabase = async (instance) => {
       allotment:
         instance.allotment - envelopeAllotmentBeforeUpdate.rows[0].allotment,
     }
+    // console.log(adjustedEnvelope)
     const adjustedEnvelopeIsInvalid = await model.isInvalid(adjustedEnvelope)
     if (!adjustedEnvelopeIsInvalid) {
       const update = await model.data.query(
         "UPDATE envelopes SET category = $2, allotment = $3 WHERE id = $1 RETURNING *;",
         [instance.id, instance.category, instance.allotment]
       )
+      // console.log(update.rows)
       return update.rows[0]
     }
+    // console.log(adjustedEnvelopeIsInvalid)
     return adjustedEnvelopeIsInvalid
   }
   return "Make sure that the request body is valid"
@@ -93,6 +122,7 @@ module.exports = {
   getAllEnvelopesFromDatabase,
   getEnvelopeFromDatabaseById,
   addEnvelopeToDatabase,
+  transferFunds,
   updateEnvelopeInDatabase,
   deleteEnvelopeFromDatabasebyId,
   deleteAllEnvelopesFromDatabase,

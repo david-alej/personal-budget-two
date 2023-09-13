@@ -29,6 +29,7 @@ async function isInvalidEnvelope(instance) {
     "SELECT sum(allotment) FROM  envelopes;"
   )
   const allotmentUsed = Number(allotmentUsedQuery.rows[0].sum)
+  // console.log(instance.allotment, allotmentUsed)
   const allotmentRemaining = totalAllotment - allotmentUsed - instance.allotment
   if (allotmentRemaining < 0) {
     return "With new allotment, the total used allotment has exceeded the total allotment limit, make new allotement less"

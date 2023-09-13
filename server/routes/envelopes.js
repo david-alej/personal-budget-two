@@ -6,6 +6,7 @@ const {
   getEnvelopes,
   getEnvelopeById,
   createEnvelope,
+  envelopeTransfer,
   updateEnvelope,
   deleteEnvelopes,
   deleteEnvelopeById,
@@ -18,6 +19,8 @@ envelopesRouter.get("/", getEnvelopes)
 envelopesRouter.get("/:envelopeId", getEnvelopeById)
 
 envelopesRouter.post("/", createEnvelope)
+
+envelopesRouter.post("/transfer/:from/:to", envelopeTransfer)
 
 envelopesRouter.put("/:envelopeId", updateEnvelope)
 

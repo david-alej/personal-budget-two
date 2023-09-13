@@ -140,7 +140,7 @@ describe("/envelopes", () => {
       assert.equal(response.status, created)
     })
 
-    it("invalid request body missing one or both of category and allotment", async () => {
+    it("Invalid create request that has body missing one or both of category and allotment", async () => {
       const expected =
         "Make sure to include both category and allotment on the request body"
       const requestBody = { allotment: 50 }
@@ -152,7 +152,7 @@ describe("/envelopes", () => {
       assert.equal(response.status, badRequest)
     })
 
-    it("invalid request body having allotment as a string", async () => {
+    it("invalid create request that has body having allotment as a string", async () => {
       const expected =
         "Make sure that category is a string and allotment is a number"
       const requestBody = { category: "revnovations", allotment: "no" }
@@ -164,7 +164,7 @@ describe("/envelopes", () => {
       assert.equal(response.status, badRequest)
     })
 
-    it("invalid request body having category as a number", async () => {
+    it("invalid create request that has body having category as a number", async () => {
       const expected =
         "Make sure that category is a string and allotment is a number"
       const requestBody = { category: 5, allotment: 5 }
@@ -176,7 +176,7 @@ describe("/envelopes", () => {
       assert.equal(response.status, badRequest)
     })
 
-    it("invalid request body violating the unique constraint on the table", async () => {
+    it("invalid create request that has body violating the unique constraint on the table", async () => {
       const expected =
         "Make sure that category is not a duplicate of existing data"
       const requestBody = { category: "savings", allotment: 5 }
@@ -186,6 +186,66 @@ describe("/envelopes", () => {
         .send(requestBody)
       assert.strictEqual(response.text, expected)
       assert.equal(response.status, badRequest)
+    })
+
+    it("transfer funds, 10 dollars, from savings to groceries", async () => {
+      const expected = [
+        { id: 3, category: "savings", allotment: 115 },
+        { id: 1, category: "groceries", allotment: 160 },
+      ]
+      const transferFunds = { funds: 10 }
+      const response = await request(app)
+        .post("/api/envelopes/transfer/3/1")
+        .type("form")
+        .send(transferFunds)
+      assert.deepEqual(JSON.parse(response.text), expected)
+      assert.strictEqual(response.status, ok)
+    })
+
+    it("invalid transfer of funds that is more than the from envelope has", async () => {
+      const expected =
+        "Make sure that the funds transfered are equal or less than the allotment that the from envelope has"
+      const transferFunds = { funds: 60 }
+      const response = await request(app)
+        .post("/api/envelopes/transfer/2/1")
+        .type("form")
+        .send(transferFunds)
+      assert.deepEqual(response.text, expected)
+      assert.strictEqual(response.status, badRequest)
+    })
+
+    it("invalid transfer funds where one of the ids are not in the database", async () => {
+      const expected = "Not found: The"
+      const transferFunds = { funds: 10 }
+      const response = await request(app)
+        .post("/api/envelopes/transfer/2/5")
+        .type("form")
+        .send(transferFunds)
+      console.log(response.text)
+      assert.include(response.text, expected)
+      assert.strictEqual(response.status, notFound)
+    })
+
+    it("Invalid transfer of funds where one of the given ids is non-numeric", async () => {
+      const expected = "The From"
+      const transferFunds = { funds: 10 }
+      const response = await request(app)
+        .post("/api/envelopes/transfer/savings/1")
+        .type("form")
+        .send(transferFunds)
+      assert.include(response.text, expected)
+      assert.strictEqual(response.status, badRequest)
+    })
+
+    it("invalid transfer of funds where the funds are non-numeric", async () => {
+      const expected = "The Funds"
+      const transferFunds = { funds: "yo" }
+      const response = await request(app)
+        .post("/api/envelopes/transfer/3/1")
+        .type("form")
+        .send(transferFunds)
+      assert.include(response.text, expected)
+      assert.strictEqual(response.status, badRequest)
     })
   })
 

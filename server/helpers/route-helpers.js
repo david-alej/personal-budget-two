@@ -2,6 +2,7 @@ const {
   getAllEnvelopesFromDatabase,
   getEnvelopeFromDatabaseById,
   addEnvelopeToDatabase,
+  transferFunds,
   updateEnvelopeInDatabase,
   deleteEnvelopeFromDatabasebyId,
   deleteAllEnvelopesFromDatabase,
@@ -45,6 +46,40 @@ async function createEnvelope(req, res, next) {
   res.status(400).send(envelopeQuery)
 }
 
+async function envelopeTransfer(req, res, next) {
+  const fromEnvelopeId = req.params.from
+  const toEnvelopeId = req.params.to
+  const funds = req.body.funds
+  const inputs = [
+    ["From envelope with id =", fromEnvelopeId],
+    ["To envelope with id =", toEnvelopeId],
+    ["Funds that are equal to", funds],
+  ]
+  for (let i = 0; i < inputs.length; i++) {
+    if (isNaN(parseFloat(inputs[i][1])) || !isFinite(inputs[i][1])) {
+      res
+        .status(400)
+        .send(`The ${inputs[i][0]} ${inputs[i][1]} must be a number.`)
+      return
+    }
+  }
+  const response = await transferFunds(fromEnvelopeId, toEnvelopeId, funds)
+  // console.log(response)
+  if (typeof response[0] === "object" && typeof response[1] === "object") {
+    // console.log("yeya")
+    res.send(JSON.stringify(response))
+    return
+  }
+
+  if (response.substring(0, 10) === "Not found:") {
+    console.log(response)
+    res.status(404).send(response)
+    return
+  }
+  // console.log("heya")
+  res.status(400).send(response)
+}
+
 async function updateEnvelope(req, res, next) {
   req.body.id = req.envelopeId
   const envelopeQuery = await updateEnvelopeInDatabase(req.body)
@@ -74,6 +109,7 @@ module.exports = {
   getEnvelopes,
   getEnvelopeById,
   createEnvelope,
+  envelopeTransfer,
   updateEnvelope,
   deleteEnvelopes,
   deleteEnvelopeById,
