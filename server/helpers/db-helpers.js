@@ -1,128 +1,105 @@
-const { db, seedData } = require("../db/db")
+const { db, seedData, findTablebyName } = require("../db/db")
 
 async function resetDatabase() {
   const pool = db.allEnvelopes.data
   await pool.query("DELETE FROM envelopes WHERE true;")
   await pool.query("ALTER SEQUENCE envelopes_id_seq RESTART WITH 1;")
+  await pool.query("DELETE FROM transactions WHERE true;")
+  await pool.query("ALTER SEQUENCE transactions_id_seq RESTART WITH 1;")
   await seedData()
 }
 
-async function getAllEnvelopesFromDatabase() {
-  const envelopes = await db.allEnvelopes.data.query("SELECT * FROM envelopes;")
-  return envelopes.rows
-}
+class Table {
+  constructor(modelType) {
+    this.modelType = modelType
+    this.model = findTablebyName(modelType)
+    this.data = this.model.data
+    this.isInvalid = this.model.isInvalid
+    this._totalAllotment = this.model.totalAllotment
+  }
 
-async function getEnvelopeFromDatabaseById(id) {
-  const envelopeQuery = await db.allEnvelopes.data.query(
-    "SELECT * FROM envelopes WHERE id = $1::integer",
-    [id]
-  )
-  return envelopeQuery.rows[0]
-}
+  async getAllRows() {
+    const tableQuery = await this.data.query(`SELECT * FROM ${this.modelType};`)
+    return tableQuery.rows
+  }
 
-async function addEnvelopeToDatabase(instance) {
-  const model = db.allEnvelopes
-  const instanceIsInvalid = await model.isInvalid(instance)
-  if (!instanceIsInvalid) {
-    const allCategories = await model.data.query(
-      "SELECT category FROM envelopes;"
+  async getRowById(id) {
+    const idRowQuery = await this.data.query(
+      `SELECT * FROM ${this.modelType} WHERE id = $1;`,
+      [id]
     )
-    const newCategoryInData = allCategories.rows.some((obj) => {
-      if (obj.category === instance.category) return true
+    return idRowQuery.rows
+  }
+
+  async deleteAllRows() {
+    const allDeleted = await this.data.query(
+      `DELETE FROM ${this.modelType} WHERE true;`
+    )
+    const emptyTableQuery = await this.data.query(
+      `SELECT * FROM ${this.modelType};`
+    )
+    return emptyTableQuery.rows
+  }
+
+  async deleteRowById(id) {
+    const envelopeDeleted = await this.data.query(
+      `DELETE FROM ${this.modelType} WHERE id = $1 RETURNING *;`,
+      [id]
+    )
+    return envelopeDeleted.rows
+  }
+
+  async insertRow(instance) {
+    const properties = Object.getOwnPropertyNames(instance)
+    let queryInputSelectors = ""
+    for (let i = 1; i < properties.length + 1; i++) {
+      queryInputSelectors += "$" + `${i}` + ", "
+    }
+    const queryInputRefrences = "(" + properties.join(", ") + ")"
+    queryInputSelectors = "(" + queryInputSelectors.slice(0, -2) + ")"
+    const insertQuery = await this.data.query(
+      `INSERT INTO ${this.modelType} ${queryInputRefrences} VALUES ${queryInputSelectors} RETURNING *;`,
+      Object.values(instance)
+    )
+    return insertQuery.rows
+  }
+
+  async updateRow(instance) {
+    const properties = Object.getOwnPropertyNames(instance)
+    let updateQuerySelectors = ""
+    for (let i = 2; i - 1 < properties.length; i++) {
+      updateQuerySelectors += properties[i - 1] + " = " + "$" + `${i}, `
+    }
+    updateQuerySelectors = updateQuerySelectors.slice(0, -2) + " WHERE id = $1"
+    const updateQuery = await this.data.query(
+      `UPDATE ${this.modelType} SET ${updateQuerySelectors} RETURNING *;`,
+      Object.values(instance)
+    )
+    return updateQuery.rows
+  }
+
+  isNotNumeric(number, nameOfNumber) {
+    if (isNaN(parseFloat(number)) || !isFinite(number)) {
+      return "Change " + nameOfNumber + " to be a number."
+    }
+    return false
+  }
+
+  async columnNotUnique(columnName, instance) {
+    const uniqueColumn = await this.data.query(
+      `SELECT ${columnName} FROM ${this.modelType};`
+    )
+    const uniquenessViolation = uniqueColumn.rows.some((obj) => {
+      if (obj[columnName] === instance[columnName]) return true
       return false
     })
-    if (!newCategoryInData) {
-      const insertEnvelopeQuery = await model.data.query(
-        "INSERT INTO envelopes (category, allotment) VALUES ($1, $2) RETURNING *;",
-        [instance.category, instance.allotment]
-      )
-      return insertEnvelopeQuery.rows[0]
-    }
-    return "Make sure that category is not a duplicate of existing data"
-  }
-  return instanceIsInvalid
-}
-
-const transferFunds = async (fromId, toId, funds) => {
-  let fromEnvelope = await getEnvelopeFromDatabaseById(fromId)
-  let toEnvelope = await getEnvelopeFromDatabaseById(toId)
-  if (!fromEnvelope) {
-    return `Not found: The From envelope with id = ${fromId} was not found`
-  } else if (!toEnvelope) {
-    return `Not found: The To envelope with id = ${toId} was not found`
-  }
-  // note that when you subtract a numeric string and a number there is actual subtraction is done but when you add them it will result in concatenate of string
-  fromEnvelope.allotment -= funds
-  toEnvelope.allotment -= -funds
-  if (fromEnvelope.allotment < 0) {
-    return "Make sure that the funds transfered are equal or less than the allotment that the from envelope has"
+    return uniquenessViolation
   }
 
-  fromEnvelope = await updateEnvelopeInDatabase(fromEnvelope)
-  toEnvelope = await updateEnvelopeInDatabase(toEnvelope)
-  if (typeof fromEnvelope === "object" && typeof toEnvelope === "object") {
-    return [fromEnvelope, toEnvelope]
+  set totalAllotment(newTotalAllotment) {
+    this._totalAllotment = newTotalAllotment
+    return
   }
 }
 
-const updateEnvelopeInDatabase = async (instance) => {
-  const model = db.allEnvelopes
-  const envelopeAllotmentBeforeUpdate = await model.data.query(
-    "SELECT allotment FROM envelopes WHERE id = $1;",
-    [instance.id]
-  )
-  if (envelopeAllotmentBeforeUpdate.rows.length) {
-    const adjustedEnvelope = {
-      id: instance.id,
-      category: instance.category,
-      allotment:
-        instance.allotment - envelopeAllotmentBeforeUpdate.rows[0].allotment,
-    }
-    const adjustedEnvelopeIsInvalid = await model.isInvalid(adjustedEnvelope)
-    if (!adjustedEnvelopeIsInvalid) {
-      const update = await model.data.query(
-        "UPDATE envelopes SET category = $2, allotment = $3 WHERE id = $1 RETURNING *;",
-        [instance.id, instance.category, instance.allotment]
-      )
-      return update.rows[0]
-    }
-    return adjustedEnvelopeIsInvalid
-  }
-  return "Make sure that the request body is valid"
-}
-
-const updateEnvelopesTotalAllotment = (newTotalAllotment) => {
-  db.allEnvelopes.totalAllotment = newTotalAllotment
-  return db.allEnvelopes.totalAllotment
-}
-
-const deleteAllEnvelopesFromDatabase = async () => {
-  const model = db.allEnvelopes
-  const allDeleted = await model.data.query("DELETE FROM envelopes WHERE true;")
-  const data = model.data.query("SELECT * FROM envelopes;")
-  return await data.rows
-}
-
-const deleteEnvelopeFromDatabasebyId = async (id) => {
-  const model = db.allEnvelopes
-  const envelopeDeleted = await model.data.query(
-    "DELETE FROM envelopes WHERE id = $1 RETURNING *;",
-    [id]
-  )
-  if (envelopeDeleted.rows) {
-    return true
-  }
-  return false
-}
-
-module.exports = {
-  resetDatabase,
-  getAllEnvelopesFromDatabase,
-  getEnvelopeFromDatabaseById,
-  addEnvelopeToDatabase,
-  transferFunds,
-  updateEnvelopeInDatabase,
-  updateEnvelopesTotalAllotment,
-  deleteEnvelopeFromDatabasebyId,
-  deleteAllEnvelopesFromDatabase,
-}
+module.exports = { resetDatabase, Table }

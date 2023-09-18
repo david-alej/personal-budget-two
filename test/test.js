@@ -3,16 +3,10 @@ const request = require("supertest")
 
 const app = require("../server")
 
-const {
-  resetDatabase,
-  getAllEnvelopesFromDatabase,
-  getEnvelopeFromDatabaseById,
-  addEnvelopeToDatabase,
-  updateEnvelopeInDatabase,
-  deleteAllEnvelopesFromDatabase,
-  deleteEnvelopeFromDatabasebyId,
-} = require("../server/helpers/db-helpers")
+const { resetDatabase, Table } = require("../server/helpers/db-helpers")
 const { describe } = require("mocha")
+
+const envelopes = new Table("envelopes")
 
 // Database helpers
 describe("Database helpers", () => {
@@ -26,15 +20,15 @@ describe("Database helpers", () => {
         { id: 2, category: "orderingOut", allotment: 50 },
         { id: 3, category: "savings", allotment: 125 },
       ]
-      const result = await getAllEnvelopesFromDatabase()
+      const result = await envelopes.getAllRows()
       assert.deepEqual(result, expected)
     })
 
     it("getting envelope with id = 2", async () => {
       const expected = { id: 2, category: "orderingOut", allotment: 50 }
       const id = "2"
-      const result = await getEnvelopeFromDatabaseById(id)
-      assert.deepEqual(result, expected)
+      const result = await envelopes.getRowById(id)
+      assert.deepEqual(result[0], expected)
     })
   })
 
@@ -42,8 +36,8 @@ describe("Database helpers", () => {
     it("add games envelope with 70 dollars", async () => {
       const expected = { id: 4, category: "games", allotment: 70 }
       const envelope = { category: "games", allotment: 70 }
-      const result = addEnvelopeToDatabase(envelope)
-      assert.deepEqual(await result, expected)
+      const result = await envelopes.insertRow(envelope)
+      assert.deepEqual(result[0], expected)
     })
   })
 
@@ -51,24 +45,24 @@ describe("Database helpers", () => {
     it("update envelope with id = 3", async () => {
       const expected = { id: 3, category: "savings", allotment: 100 }
       const envelope = expected
-      const result = await updateEnvelopeInDatabase(envelope)
-      assert.deepEqual(result, expected)
+      const result = await envelopes.updateRow(envelope)
+      assert.deepEqual(result[0], expected)
     })
   })
 
   describe("DELETE helpers", () => {
     it("delete all envelopes", async () => {
-      const expected = undefined
-      const result = deleteAllEnvelopesFromDatabase()
+      const expected = []
+      const result = envelopes.deleteAllRows()
       assert.deepEqual(await result, expected)
       await resetDatabase()
     })
 
     it("delete an envelope with id = 2", async () => {
-      const expected = true
+      const expected = { id: 2, category: "orderingOut", allotment: 50 }
       const id = 2
-      const result = await deleteEnvelopeFromDatabasebyId(id)
-      assert.strictEqual(result, expected)
+      const result = await envelopes.deleteRowById(id)
+      assert.deepEqual(result[0], expected)
     })
   })
 })

@@ -11,7 +11,7 @@ const {
   updateTotalAllotment,
   deleteEnvelopes,
   deleteEnvelopeById,
-} = require("../helpers/route-helpers")
+} = require("../helpers/envelope-helpers")
 
 envelopesRouter.param("envelopeId", handleEnvelopeId)
 
