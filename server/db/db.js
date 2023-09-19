@@ -61,7 +61,7 @@ async function isInvalidTransaction(instance) {
     return "Make sure to include date, payment, shop, and envelope_id on the request body"
   } // problem is if statement below
   if (
-    typeof instance.date === "string" ||
+    typeof instance.date !== "string" ||
     isNaN(parseFloat(instance.payment)) ||
     !isFinite(instance.payment) ||
     !isNaN(parseFloat(instance.shop)) ||
@@ -69,19 +69,18 @@ async function isInvalidTransaction(instance) {
     isNaN(parseFloat(instance.envelope_id)) ||
     !isFinite(instance.envelope_id)
   ) {
-    return "Make sure that the date is a date, shop is a strings, and payment and envelope_id are numbers"
+    return "Make sure that the date is a string, shop is a strings, and payment and envelope_id are numbers"
   }
   instance.payment = Number(instance.payment)
   instance.envelope_id = Number(instance.envelope_id)
-  console.log(instance)
   const allotmentUsedQuery = await _pool.query(
     "SELECT allotment FROM  envelopes WHERE id = $1;",
     [instance.envelope_id]
   )
-  if (!allotmentUsedQuery) {
+  if (allotmentUsedQuery.rows.length <= 0) {
     return `There is no envelope by that envelope_id = ${instance.envelope_id}`
   }
-  const allotmentUsed = Number(allotmentUsedQuery.rows[0].sum)
+  const allotmentUsed = Number(allotmentUsedQuery.rows[0].allotment)
   const allotmentAfterTransaction = allotmentUsed - instance.payment
   if (allotmentAfterTransaction < 0) {
     return "With new allotment, the used allotment in the envelope has exceeded the allotment limit, make payment less"
@@ -122,7 +121,7 @@ const transactionFactory = async (date, payment, shop, envelope_id) => {
   if (transactionIsInvalid) {
     throw new Error(transactionIsInvalid)
   }
-  const updateEnvelopeAllotmentQuery = _pool.query(
+  const updateEnvelopeAllotmentQuery = await _pool.query(
     "UPDATE envelopes SET allotment = allotment - $2 WHERE id = $1 RETURNING *;",
     [envelope_id, payment]
   )
@@ -131,6 +130,7 @@ const transactionFactory = async (date, payment, shop, envelope_id) => {
     "INSERT INTO transactions (date, payment, shop, envelope_id) VALUES ($1, $2, $3, $4);",
     Object.values(transaction)
   )
+  return payment
 }
 
 async function seedData(transactions = false) {
@@ -138,8 +138,19 @@ async function seedData(transactions = false) {
   await envelopeFactory("orderingOut", 50)
   await envelopeFactory("savings", 125)
   if (transactions) {
-    await transactionFactory(new Date("Sep 12 2023"), 50, "Wingstop", 2)
-    await transactionFactory(new Date("Sep 18 2023"), 70, "Walmart", 1)
+    const allotmentSpentOne = await transactionFactory(
+      new Date("Sep 12 2023").toString(),
+      50,
+      "Wingstop",
+      2
+    )
+    const allotmentSpentTwo = await transactionFactory(
+      new Date("Sep 18 2023").toString(),
+      70,
+      "Walmart",
+      1
+    )
+    return allotmentSpentOne + allotmentSpentTwo
   }
 }
 

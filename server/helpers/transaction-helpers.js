@@ -36,15 +36,12 @@ function getTransactionById(req, res, next) {
 
 async function createTransaction(req, res, next) {
   const transaction = req.body
-  console.log(transaction.date)
   const transactionIsInvalid = await isInvalidTransaction(transaction)
-  console.log(transactionIsInvalid)
   const dateValueIsNotUnique = await transactions.columnNotUnique(
     "date",
-    envelope
+    transaction
   )
   if (transactionIsInvalid) {
-    console.log("yo")
     res.status(400).send(transactionIsInvalid)
     return
   } else if (dateValueIsNotUnique) {
@@ -55,14 +52,13 @@ async function createTransaction(req, res, next) {
   }
   const updateEnvelopeAllotmentQuery = await transactions.data.query(
     "UPDATE envelopes SET allotment = allotment - $2 WHERE id = $1 RETURNING *;",
-    [envelope_id, payment]
+    [transaction.envelope_id, transaction.payment]
   )
-  if (updateEnvelopeAllotmentQuery.length <= 0) {
+  if (updateEnvelopeAllotmentQuery.rows.length <= 0) {
     res.status(400).send("Update to envelopes was not possible")
     return
   }
-  envelopes.totalAllotment -= payment
-  console.log(envelopes.totalAllotment)
+  envelopes.totalAllotment -= transaction.payment
   const createdTransaction = await transactions.insertRow(transaction)
   if (createdTransaction.length > 0) {
     res.status(201).send(JSON.stringify(createdTransaction[0]))
@@ -71,9 +67,52 @@ async function createTransaction(req, res, next) {
   res.status(400).send("Something went wrong with insert query")
 }
 
+async function updateTransaction(req, res, next) {
+  const transaction = req.transaction
+  const newTransaction = req.body
+  const paymentDifference = newTransaction.payment - transaction.payment
+  newTransaction.payment = paymentDifference
+  const newTransactionIsInvalid = await isInvalidTransaction(newTransaction)
+  if (newTransactionIsInvalid) {
+    res.status(400).send(newTransactionIsInvalid)
+  }
+  newTransaction.payment -= -transaction.payment
+  const restoreEnvelopeAllotmentQuery = await transactions.data.query(
+    "UPDATE envelopes SET allotment = allotment + $2 WHERE id = $1 RETURNING *;",
+    [transaction.envelope_id, transaction.payment]
+  )
+  const updateEnvelopeAllotmentQuery = await transactions.data.query(
+    "UPDATE envelopes SET allotment = allotment - $2 WHERE id = $1 RETURNING *;",
+    [newTransaction.envelope_id, newTransaction.payment]
+  )
+  if (restoreEnvelopeAllotmentQuery.rows.length <= 0) {
+    res
+      .status(400)
+      .send(
+        `Restoring alltoment to envelope with previous envelope_id = ${transaction.payment} was not possible`
+      )
+    return
+  } else if (updateEnvelopeAllotmentQuery.rows.length <= 0) {
+    res
+      .status(400)
+      .send(
+        `Updating alltoment to envelope with new envelope_id = ${newTransaction.payment} was not possible`
+      )
+    return
+  }
+  envelopes.totalAllotment -= paymentDifference
+  const updatedTransaction = await transactions.updateRow(newTransaction)
+  if (updatedTransaction.length > 0) {
+    res.send(JSON.stringify(updatedTransaction[0]))
+    return
+  }
+  res.status(400).send("Something when wrong with transaction query")
+}
+
 module.exports = {
   handleTransactionId,
   getTransactions,
   getTransactionById,
   createTransaction,
+  updateTransaction,
 }

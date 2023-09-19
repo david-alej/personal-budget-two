@@ -135,7 +135,7 @@ async function updateEnvelope(req, res, next) {
     res.send(JSON.stringify(updatedEnvelope[0]))
     return
   }
-  res.status(400).send(envelopeQuery)
+  res.status(400).send("Something wen wrong with update envelope query")
 }
 
 async function updateTotalAllotment(req, res, next) {
@@ -167,6 +167,7 @@ async function deleteEnvelopeById(req, res, next) {
 }
 
 module.exports = {
+  envelopes,
   handleEnvelopeId,
   getEnvelopes,
   getEnvelopeById,

@@ -6,6 +6,7 @@ const {
   getTransactions,
   getTransactionById,
   createTransaction,
+  updateTransaction,
 } = require("../helpers/transaction-helpers")
 
 transactionsRouter.param("transactionId", handleTransactionId)
@@ -16,7 +17,7 @@ transactionsRouter.get("/:transactionId", getTransactionById)
 
 transactionsRouter.post("/", createTransaction)
 
-// transactionsRouter.put("/:transactionId", updateTransaction)
+transactionsRouter.put("/:transactionId", updateTransaction)
 
 // transactionsRouter.delete("/", deleteTransactions)
 

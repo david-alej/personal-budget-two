@@ -9,7 +9,7 @@ async function resetDatabase(transactions = false) {
   await pool.query("DELETE FROM envelopes WHERE true;")
   await pool.query("ALTER SEQUENCE envelopes_id_seq RESTART WITH 1;")
 
-  await seedData(transactions)
+  return await seedData(transactions)
 }
 
 class Table {
@@ -21,7 +21,9 @@ class Table {
   }
 
   async getAllRows() {
-    const tableQuery = await this.data.query(`SELECT * FROM ${this.modelType};`)
+    const tableQuery = await this.data.query(
+      `SELECT * FROM ${this.modelType} ORDER BY id ASC;`
+    )
     return tableQuery.rows
   }
 
