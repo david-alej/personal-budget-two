@@ -1,5 +1,5 @@
 const { Table } = require("./db-helpers")
-
+const { isInvalidEnvelope } = require("../db/db")
 const envelopes = new Table("envelopes")
 
 async function handleEnvelopeId(req, res, next, id) {
@@ -34,7 +34,11 @@ function getEnvelopeById(req, res, next) {
 
 async function createEnvelope(req, res, next) {
   const envelope = req.body
-  const envelopeIsInvalid = envelopes.isInvalid(envelope)
+  const envelopeIsInvalid = isInvalidEnvelope(
+    envelope,
+    envelopes.data,
+    envelopes._totalAllotment
+  )
   const categoryValueIsNotUnique = envelopes.columnNotUnique(
     "category",
     envelope
@@ -117,7 +121,11 @@ async function updateEnvelope(req, res, next) {
   const envelope = req.envelope
   const newEnvelope = req.body
   newEnvelope.allotment -= envelope.allotment
-  const newEnvelopeIsInvalid = await envelopes.isInvalid(newEnvelope)
+  const newEnvelopeIsInvalid = await isInvalidEnvelope(
+    newEnvelope,
+    envelopes.data,
+    envelopes._totalAllotment
+  )
   if (newEnvelopeIsInvalid) {
     res.status(400).send(newEnvelopeIsInvalid)
   }

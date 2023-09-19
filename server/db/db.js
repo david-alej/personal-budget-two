@@ -1,5 +1,5 @@
 const Pool = require("pg").Pool
-const pool = new Pool({
+const _pool = new Pool({
   user: "budgeteer",
   host: "localhost",
   database: "budget_api",
@@ -18,9 +18,13 @@ types.setTypeParser(1700, function (val) {
   return parseFloat(val)
 })
 
-let totalAllotment = 500
+let _totalAllotment = 500
 
-async function isInvalidEnvelope(instance) {
+async function isInvalidEnvelope(
+  instance,
+  pool = _pool,
+  totalAllotment = _totalAllotment
+) {
   if (
     !Object.hasOwn(instance, "allotment") ||
     !Object.hasOwn(instance, "category")
@@ -51,26 +55,26 @@ async function isInvalidTransaction(instance) {
   if (
     !Object.hasOwn(instance, "date") ||
     !Object.hasOwn(instance, "payment") ||
-    !Object.hasOwn(instance, "reciept") ||
+    !Object.hasOwn(instance, "shop") ||
     !Object.hasOwn(instance, "envelope_id")
   ) {
-    return "Make sure to include both category and allotment on the request body"
-  }
+    return "Make sure to include date, payment, shop, and envelope_id on the request body"
+  } // problem is if statement below
   if (
-    !isNaN(parseFloat(instance.date)) ||
-    isFinite(instance.date) ||
+    typeof instance.date === "string" ||
     isNaN(parseFloat(instance.payment)) ||
     !isFinite(instance.payment) ||
-    !isNaN(parseFloat(instance.reciept)) ||
-    isFinite(instance.reciept) ||
+    !isNaN(parseFloat(instance.shop)) ||
+    isFinite(instance.shop) ||
     isNaN(parseFloat(instance.envelope_id)) ||
     !isFinite(instance.envelope_id)
   ) {
-    return "Make sure that the date and receipt are strings, and payment and envelope_id are numbers"
+    return "Make sure that the date is a date, shop is a strings, and payment and envelope_id are numbers"
   }
   instance.payment = Number(instance.payment)
   instance.envelope_id = Number(instance.envelope_id)
-  const allotmentUsedQuery = await pool.query(
+  console.log(instance)
+  const allotmentUsedQuery = await _pool.query(
     "SELECT allotment FROM  envelopes WHERE id = $1;",
     [instance.envelope_id]
   )
@@ -87,13 +91,13 @@ async function isInvalidTransaction(instance) {
 
 const db = {
   allEnvelopes: {
-    data: pool,
+    data: _pool,
     isInvalid: isInvalidEnvelope,
-    totalAllotment,
+    totalAllotment: _totalAllotment,
   },
 
   allTransactions: {
-    data: pool,
+    data: _pool,
     isInvalid: isInvalidTransaction,
   },
 }
@@ -101,29 +105,46 @@ const db = {
 // Seeding data into envelopes table
 const envelopeFactory = async (category, allotment) => {
   await db.allEnvelopes.isInvalid({ category, allotment })
-  const res = await pool.query(
+  const res = await _pool.query(
     "INSERT INTO envelopes (category, allotment) VALUES ($1, $2);",
     [category, allotment]
   )
 }
 
 const transactionFactory = async (date, payment, shop, envelope_id) => {
-  await db.allTransactions.isInvalid()
-  const res = await pool.query(
-    "INSERT INTO transactions (date, paymnet, shop, envelope_id) VALUES ($1, $2, $3, $4);",
-    [date, payment, shop, envelope_id]
+  const transaction = {
+    date,
+    payment,
+    shop,
+    envelope_id,
+  }
+  const transactionIsInvalid = await db.allTransactions.isInvalid(transaction)
+  if (transactionIsInvalid) {
+    throw new Error(transactionIsInvalid)
+  }
+  const updateEnvelopeAllotmentQuery = _pool.query(
+    "UPDATE envelopes SET allotment = allotment - $2 WHERE id = $1 RETURNING *;",
+    [envelope_id, payment]
   )
-  //need to add where the envelope allotment is adjusted to be subtracted by the payment
+  db.allEnvelopes.totalAllotment -= payment
+  const insertTransactionQuery = await _pool.query(
+    "INSERT INTO transactions (date, payment, shop, envelope_id) VALUES ($1, $2, $3, $4);",
+    Object.values(transaction)
+  )
 }
 
-async function seedData() {
+async function seedData(transactions = false) {
   await envelopeFactory("groceries", 150)
   await envelopeFactory("orderingOut", 50)
   await envelopeFactory("savings", 125)
+  if (transactions) {
+    await transactionFactory(new Date("Sep 12 2023"), 50, "Wingstop", 2)
+    await transactionFactory(new Date("Sep 18 2023"), 70, "Walmart", 1)
+  }
 }
 
 const dataExists = async () => {
-  const query = await pool.query("SELECT * FROM envelopes ORDER BY id ASC;")
+  const query = await _pool.query("SELECT * FROM envelopes ORDER BY id ASC;")
   return query.rows.length !== 0
 }
 
@@ -142,4 +163,10 @@ function findTablebyName(modelType) {
   }
 }
 
-module.exports = { db, seedData, findTablebyName }
+module.exports = {
+  db,
+  seedData,
+  findTablebyName,
+  isInvalidEnvelope,
+  isInvalidTransaction,
+}

@@ -1,12 +1,15 @@
 const { db, seedData, findTablebyName } = require("../db/db")
 
-async function resetDatabase() {
+async function resetDatabase(transactions = false) {
   const pool = db.allEnvelopes.data
+  if (transactions) {
+    await pool.query("DELETE FROM transactions WHERE true;")
+    await pool.query("ALTER SEQUENCE transactions_id_seq RESTART WITH 1;")
+  }
   await pool.query("DELETE FROM envelopes WHERE true;")
   await pool.query("ALTER SEQUENCE envelopes_id_seq RESTART WITH 1;")
-  await pool.query("DELETE FROM transactions WHERE true;")
-  await pool.query("ALTER SEQUENCE transactions_id_seq RESTART WITH 1;")
-  await seedData()
+
+  await seedData(transactions)
 }
 
 class Table {
@@ -14,7 +17,6 @@ class Table {
     this.modelType = modelType
     this.model = findTablebyName(modelType)
     this.data = this.model.data
-    this.isInvalid = this.model.isInvalid
     this._totalAllotment = this.model.totalAllotment
   }
 
@@ -99,6 +101,10 @@ class Table {
   set totalAllotment(newTotalAllotment) {
     this._totalAllotment = newTotalAllotment
     return
+  }
+
+  get totalAllotment() {
+    return this._totalAllotment
   }
 }
 

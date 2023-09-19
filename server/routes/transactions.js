@@ -1,13 +1,20 @@
 const express = require("express")
 const transactionsRouter = express.Router()
 
-// transactionsRouter.param("transactionId", handleTransactionId)
+const {
+  handleTransactionId,
+  getTransactions,
+  getTransactionById,
+  createTransaction,
+} = require("../helpers/transaction-helpers")
 
-// transactionsRouter.get("/", getTransactions)
+transactionsRouter.param("transactionId", handleTransactionId)
 
-// transactionsRouter.get("/:transactionId", getTransactionById)
+transactionsRouter.get("/", getTransactions)
 
-// transactionsRouter.post("/", createTransaction)
+transactionsRouter.get("/:transactionId", getTransactionById)
+
+transactionsRouter.post("/", createTransaction)
 
 // transactionsRouter.put("/:transactionId", updateTransaction)
 
