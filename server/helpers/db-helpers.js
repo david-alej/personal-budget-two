@@ -35,24 +35,6 @@ class Table {
     return idRowQuery.rows
   }
 
-  async deleteAllRows() {
-    const allDeleted = await this.data.query(
-      `DELETE FROM ${this.modelType} WHERE true;`
-    )
-    const emptyTableQuery = await this.data.query(
-      `SELECT * FROM ${this.modelType};`
-    )
-    return emptyTableQuery.rows
-  }
-
-  async deleteRowById(id) {
-    const envelopeDeleted = await this.data.query(
-      `DELETE FROM ${this.modelType} WHERE id = $1 RETURNING *;`,
-      [id]
-    )
-    return envelopeDeleted.rows
-  }
-
   async insertRow(instance) {
     const properties = Object.getOwnPropertyNames(instance)
     let queryInputSelectors = ""
@@ -82,9 +64,27 @@ class Table {
     return updateQuery.rows
   }
 
+  async deleteAllRows() {
+    const allDeleted = await this.data.query(
+      `DELETE FROM ${this.modelType} WHERE true;`
+    )
+    const emptyTableQuery = await this.data.query(
+      `SELECT * FROM ${this.modelType};`
+    )
+    return emptyTableQuery.rows
+  }
+
+  async deleteRowById(id) {
+    const envelopeDeleted = await this.data.query(
+      `DELETE FROM ${this.modelType} WHERE id = $1 RETURNING *;`,
+      [id]
+    )
+    return envelopeDeleted.rows
+  }
+
   isNotNumeric(number, nameOfNumber) {
     if (isNaN(parseFloat(number)) || !isFinite(number)) {
-      return "Change " + nameOfNumber + " to be a number."
+      return "Change " + nameOfNumber + " to be a number"
     }
     return false
   }

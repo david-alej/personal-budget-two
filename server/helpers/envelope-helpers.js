@@ -3,7 +3,7 @@ const { isInvalidEnvelope } = require("../db/db")
 const envelopes = new Table("envelopes")
 
 async function handleEnvelopeId(req, res, next, id) {
-  const idIsNotNumeric = envelopes.isNotNumeric(id, "id")
+  const idIsNotNumeric = envelopes.isNotNumeric(id, "envelopes's id")
   if (idIsNotNumeric) {
     res.status(400).send(idIsNotNumeric)
     return
@@ -17,6 +17,10 @@ async function handleEnvelopeId(req, res, next, id) {
     return
   }
   res.status(404).send("There is no envelope with that id")
+}
+
+function getTotalAllotment(req, res, next) {
+  res.send(envelopes.totalAllotment.toString())
 }
 
 async function getEnvelopes(req, res, next) {
@@ -168,6 +172,7 @@ async function deleteEnvelopeById(req, res, next) {
 
 module.exports = {
   envelopes,
+  getTotalAllotment,
   handleEnvelopeId,
   getEnvelopes,
   getEnvelopeById,

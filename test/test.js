@@ -123,13 +123,22 @@ describe("/api/envelopes", () => {
     })
 
     it("get envelope with invalid id = hi", async () => {
-      const expected = "Envelope's id must be a number."
+      const expected = "Change envelopes's id to be a number"
       const id = "hi"
       const response = await request(app)
         .get("/api/envelopes/" + id)
         .send()
-      assert(response.text, expected)
-      assert.equal(response.status, badRequest)
+      assert.strictEqual(response.text, expected)
+      assert.strictEqual(response.status, badRequest)
+    })
+
+    it("get total allotment", async () => {
+      const expected = 500
+      const response = await request(app)
+        .get("/api/envelopes/total-allotment")
+        .send()
+      assert.equal(response.text, expected)
+      assert.strictEqual(response.status, ok)
     })
   })
 
