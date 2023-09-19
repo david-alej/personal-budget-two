@@ -1,16 +1,4 @@
-const { db, seedData, findTablebyName } = require("../db/db")
-
-async function resetDatabase(transactions = false) {
-  const pool = db.allEnvelopes.data
-  if (transactions) {
-    await pool.query("DELETE FROM transactions WHERE true;")
-    await pool.query("ALTER SEQUENCE transactions_id_seq RESTART WITH 1;")
-  }
-  await pool.query("DELETE FROM envelopes WHERE true;")
-  await pool.query("ALTER SEQUENCE envelopes_id_seq RESTART WITH 1;")
-
-  return await seedData(transactions)
-}
+const { findTablebyName } = require("../db/db")
 
 class Table {
   constructor(modelType) {
@@ -110,4 +98,4 @@ class Table {
   }
 }
 
-module.exports = { resetDatabase, Table }
+module.exports = { Table }

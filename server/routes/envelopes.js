@@ -3,11 +3,13 @@ const envelopesRouter = express.Router()
 
 const {
   handleEnvelopeId,
+
   getTotalAllotment,
   getEnvelopes,
   getEnvelopeById,
   createEnvelope,
   envelopeTransfer,
+  seedEnvelopes,
   updateEnvelope,
   updateTotalAllotment,
   deleteEnvelopes,
@@ -26,7 +28,9 @@ envelopesRouter.post("/", createEnvelope)
 
 envelopesRouter.post("/transfer/:from/:to", envelopeTransfer)
 
-envelopesRouter.put("/totalAllotment", updateTotalAllotment)
+envelopesRouter.get("/seed-envelopes", seedEnvelopes)
+
+envelopesRouter.put("/total-allotment", updateTotalAllotment)
 
 envelopesRouter.put("/:envelopeId", updateEnvelope)
 

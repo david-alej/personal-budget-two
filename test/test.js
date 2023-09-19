@@ -3,8 +3,8 @@ const request = require("supertest")
 
 const app = require("../server")
 
-const { db } = require("../server/db/db")
-const { resetDatabase, Table } = require("../server/helpers/db-helpers")
+const { db, resetDatabase } = require("../server/db/db")
+const { Table } = require("../server/helpers/db-helpers")
 const { describe } = require("mocha")
 const { envelopes } = require("../server/helpers/envelope-helpers")
 const { transactions } = require("../server/helpers/transaction-helpers")

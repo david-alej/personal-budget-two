@@ -41,7 +41,7 @@ async function createEnvelope(req, res, next) {
   const envelopeIsInvalid = isInvalidEnvelope(
     envelope,
     envelopes.data,
-    envelopes._totalAllotment
+    envelopes.totalAllotment
   )
   const categoryValueIsNotUnique = envelopes.columnNotUnique(
     "category",
@@ -121,6 +121,49 @@ async function envelopeTransfer(req, res, next) {
   res.status(400).send("While updating rows something when wrong")
 }
 
+async function seedEnvelopes(req, res, next) {
+  const seededEnvelopes = [
+    {
+      category: "groceries",
+      allotment: 150,
+    },
+    {
+      category: "orderingOut",
+      allotment: 50,
+    },
+    {
+      category: "savings",
+      allotment: 125,
+    },
+  ]
+  for (let i = 0; i < seededEnvelopes.length; i++) {
+    const envelope = seededEnvelopes[i]
+    const envelopeIsInvalid = isInvalidEnvelope(
+      envelope,
+      envelopes.data,
+      envelopes.totalAllotment
+    )
+    const categoryValueIsNotUnique = envelopes.columnNotUnique(
+      "category",
+      envelope
+    )
+    if (await envelopeIsInvalid) {
+      res.status(400).send(await envelopeIsInvalid)
+      return
+    } else if (await categoryValueIsNotUnique) {
+      res
+        .status(400)
+        .send("Make sure that category is not a duplicate of existing data")
+      return
+    }
+    const createdEnvelope = await envelopes.insertRow(envelope)
+    if (createdEnvelope.length > 0) {
+      res.status(201).send(JSON.stringify(createdEnvelope[0]))
+      return
+    }
+  }
+}
+
 async function updateEnvelope(req, res, next) {
   const envelope = req.envelope
   const newEnvelope = req.body
@@ -178,6 +221,7 @@ module.exports = {
   getEnvelopeById,
   createEnvelope,
   envelopeTransfer,
+  seedEnvelopes,
   updateEnvelope,
   updateTotalAllotment,
   deleteEnvelopes,

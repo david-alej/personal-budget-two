@@ -13,6 +13,7 @@ const _pool = new Pool({
     return next()
   },
 })
+
 const types = require("pg").types
 types.setTypeParser(1700, function (val) {
   return parseFloat(val)
@@ -154,14 +155,26 @@ async function seedData(transactions = false) {
   }
 }
 
-const dataExists = async () => {
-  const query = await _pool.query("SELECT * FROM envelopes ORDER BY id ASC;")
-  return query.rows.length !== 0
+async function resetDatabase(transactions = false) {
+  const _pool = db.allEnvelopes.data
+  if (transactions) {
+    await _pool.query("DELETE FROM transactions WHERE true;")
+    await _pool.query("ALTER SEQUENCE transactions_id_seq RESTART WITH 1;")
+  }
+  await _pool.query("DELETE FROM envelopes WHERE true;")
+  await _pool.query("ALTER SEQUENCE envelopes_id_seq RESTART WITH 1;")
+
+  return await seedData(transactions)
 }
 
-if (!dataExists) {
-  seedData()
-}
+// const dataExists = async () => {
+//   const query = await _pool.query("SELECT * FROM envelopes ORDER BY id ASC;")
+//   return query.rows.length !== 0
+// }
+
+// if (!dataExists) {
+//   seedData()
+// }
 
 function findTablebyName(modelType) {
   switch (modelType) {
@@ -177,6 +190,7 @@ function findTablebyName(modelType) {
 module.exports = {
   db,
   seedData,
+  resetDatabase,
   findTablebyName,
   isInvalidEnvelope,
   isInvalidTransaction,
