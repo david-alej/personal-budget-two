@@ -7,6 +7,7 @@ const { db } = require("../server/db/db")
 const { resetDatabase, Table } = require("../server/helpers/db-helpers")
 const { describe } = require("mocha")
 const { envelopes } = require("../server/helpers/envelope-helpers")
+const { transactions } = require("../server/helpers/transaction-helpers")
 
 const _envelopes = new Table("envelopes")
 const ok = 200
@@ -323,16 +324,12 @@ describe("/api/envelopes", () => {
 
   describe("DELETE requests", () => {
     it("deletes all envelopes", async () => {
-      const expected = 204
       const response = await request(app).delete("/api/envelopes").send()
-      assert.strictEqual(response.status, expected)
       assert.equal(response.status, noContent)
     })
 
     it("delete envelope with id = 2", async () => {
-      const expected = 204
       const response = await request(app).delete("/api/envelopes/2").send()
-      assert.strictEqual(response.status, expected)
       assert.equal(response.status, noContent)
     })
   })
@@ -598,6 +595,18 @@ describe("/api/transactions", () => {
         .send(transaction)
       assert.include(response.text, expected)
       assert.equal(response.status, badRequest)
+    })
+  })
+
+  describe("DELETE requests", () => {
+    it("deletes all transactions", async () => {
+      const response = await request(app).delete("/api/transactions/").send()
+      assert.equal(response.status, noContent)
+    })
+
+    it("delete transaction with id = 2", async () => {
+      const response = await request(app).delete("/api/transactions/2").send()
+      assert.equal(response.status, noContent)
     })
   })
 

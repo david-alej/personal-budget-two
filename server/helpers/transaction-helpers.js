@@ -109,10 +109,31 @@ async function updateTransaction(req, res, next) {
   res.status(400).send("Something when wrong with transaction query")
 }
 
+async function deleteTransactions(req, res, next) {
+  const emptyTable = await transactions.deleteAllRows()
+  if (emptyTable.length === 0) {
+    res.status(204).send()
+    return
+  }
+  res.status(400).send("Delete all transactions query did not work")
+}
+
+async function deleteTransactionById(req, res, next) {
+  const isDeleted = await transactions.deleteRowById(req.transactionId)
+  if (isDeleted.length > 0) {
+    res.status(204).send()
+    return
+  }
+  res.status(404).send()
+}
+
 module.exports = {
+  transactions,
   handleTransactionId,
   getTransactions,
   getTransactionById,
   createTransaction,
   updateTransaction,
+  deleteTransactions,
+  deleteTransactionById,
 }
