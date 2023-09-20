@@ -1,6 +1,6 @@
 const { Table } = require("./db-helpers")
 const { isInvalidTransaction } = require("../db/db")
-const { envelopes, unusedAllotment } = require("./envelope-helpers")
+let { unusedAllotment } = require("./envelope-helpers")
 
 const transactions = new Table("transactions")
 
@@ -11,12 +11,12 @@ async function handleTransactionDeletion(transaction, preErrorMessage = "") {
     [transaction.envelope_id, transaction.payment]
   )
   if (restoreEnvelopeAllotmentQuery.length === 0) {
-    return preErrorMessage + "Restoring allotment query did not work"
+    return preErrorMessage + "Restoring allotment query did not work."
   }
   unusedAllotment -= -transaction.payment
   const isDeleted = await transactions.deleteRowById(transaction.id)
   if (isDeleted.length === 0) {
-    return preErrorMessage + "Delete query was not succesfull"
+    return preErrorMessage + "Delete query was not succesfull."
   }
 }
 
@@ -34,7 +34,7 @@ async function handleTransactionId(req, res, next, id) {
     next()
     return
   }
-  res.status(404).send("There is no transaction with that id")
+  res.status(404).send("There is no transaction with that id.")
 }
 
 async function getTransactions(req, res, next) {
@@ -47,7 +47,7 @@ function getTransactionById(req, res, next) {
     res.send(JSON.stringify(transaction))
     return
   }
-  res.status(404).send("Not found")
+  res.status(404).send("Not found.")
 }
 
 async function createTransaction(req, res, next) {
@@ -63,7 +63,7 @@ async function createTransaction(req, res, next) {
   } else if (dateValueIsNotUnique) {
     res
       .status(400)
-      .send("Make sure that date is not a duplicate of existing data")
+      .send("Make sure that date is not a duplicate of existing data.")
     return
   }
   const updateEnvelopeAllotmentQuery = await transactions.data.query(
@@ -71,7 +71,7 @@ async function createTransaction(req, res, next) {
     [transaction.envelope_id, transaction.payment]
   )
   if (updateEnvelopeAllotmentQuery.rows.length <= 0) {
-    res.status(400).send("Update to envelopes was not possible")
+    res.status(400).send("Update to envelopes was not possible.")
     return
   }
   unusedAllotment -= transaction.payment
@@ -80,7 +80,7 @@ async function createTransaction(req, res, next) {
     res.status(201).send(JSON.stringify(createdTransaction[0]))
     return
   }
-  res.status(400).send("Something went wrong with insert query")
+  res.status(400).send("Something went wrong with insert query.")
 }
 
 async function seedTransactions(req, res, next) {
@@ -116,7 +116,8 @@ async function seedTransactions(req, res, next) {
       res
         .status(400)
         .send(
-          preMessage + "Make sure that date is not a duplicate of existing data"
+          preMessage +
+            "Make sure that date is not a duplicate of existing data."
         )
       return
     }
@@ -125,7 +126,7 @@ async function seedTransactions(req, res, next) {
       [transaction.envelope_id, transaction.payment]
     )
     if (updateEnvelopeAllotmentQuery.rows.length <= 0) {
-      res.status(400).send(preMessage + "Update to envelopes was not possible")
+      res.status(400).send(preMessage + "Update to envelopes was not possible.")
       return
     }
     unusedAllotment -= transaction.payment
@@ -133,7 +134,7 @@ async function seedTransactions(req, res, next) {
     if (createdTransaction.length === 0) {
       res
         .status(400)
-        .send(preMessage + "Something went wrong with insert query")
+        .send(preMessage + "Something went wrong with insert query.")
       return
     }
     results.push(createdTransaction[0])
@@ -163,24 +164,25 @@ async function updateTransaction(req, res, next) {
     res
       .status(400)
       .send(
-        `Restoring alltoment to envelope with previous envelope_id = ${transaction.payment} was not possible`
+        `Restoring alltoment to envelope with previous envelope_id = ${transaction.payment} was not possible.`
       )
     return
   } else if (updateEnvelopeAllotmentQuery.rows.length <= 0) {
     res
       .status(400)
       .send(
-        `Updating alltoment to envelope with new envelope_id = ${newTransaction.payment} was not possible`
+        `Updating alltoment to envelope with new envelope_id = ${newTransaction.payment} was not possible.`
       )
     return
   }
   unusedAllotment -= paymentDifference
+  console.log(unusedAllotment)
   const updatedTransaction = await transactions.updateRow(newTransaction)
   if (updatedTransaction.length > 0) {
     res.send(JSON.stringify(updatedTransaction[0]))
     return
   }
-  res.status(400).send("Something when wrong with transaction query")
+  res.status(400).send("Something when wrong with transaction query.")
 }
 
 async function deleteTransactions(req, res, next) {
@@ -200,7 +202,7 @@ async function deleteTransactions(req, res, next) {
 
   const emptyTable = await transactions.getAllRows()
   if (emptyTable.length !== 0) {
-    res.status(400).send("Delete all transactions iteratively did not work")
+    res.status(400).send("Delete all transactions iteratively did not work.")
     return
   }
   await transactions.data.query(

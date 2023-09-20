@@ -3,22 +3,21 @@ const envelopesRouter = express.Router()
 
 const {
   handleEnvelopeId,
-
-  getTotalAllotment,
+  getUnusedAllotment,
   getEnvelopes,
   getEnvelopeById,
   createEnvelope,
   envelopeTransfer,
   seedEnvelopes,
   updateEnvelope,
-  updateTotalAllotment,
+  updateUnusedAllotment,
   deleteEnvelopes,
   deleteEnvelopeById,
 } = require("../helpers/envelope-helpers")
 
 envelopesRouter.param("envelopeId", handleEnvelopeId)
 
-envelopesRouter.get("/total-allotment", getTotalAllotment)
+envelopesRouter.get("/unused-allotment", getUnusedAllotment)
 
 envelopesRouter.get("/", getEnvelopes)
 
@@ -30,7 +29,7 @@ envelopesRouter.post("/transfer/:from/:to", envelopeTransfer)
 
 envelopesRouter.post("/seed-envelopes", seedEnvelopes)
 
-envelopesRouter.put("/total-allotment", updateTotalAllotment)
+envelopesRouter.put("/unused-allotment", updateUnusedAllotment)
 
 envelopesRouter.put("/:envelopeId", updateEnvelope)
 

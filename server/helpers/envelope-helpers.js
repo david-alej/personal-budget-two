@@ -1,7 +1,7 @@
 const { Table } = require("./db-helpers")
-const { isInvalidEnvelope } = require("../db/db")
+const { getUnusedAllotment, isInvalidEnvelope } = require("../db/db")
+
 const envelopes = new Table("envelopes")
-const unusedAllotment = envelopes.model.unusedAllotment
 
 async function handleEnvelopeId(req, res, next, id) {
   const idIsNotNumeric = envelopes.isNotNumeric(id, "envelopes's id")
@@ -17,10 +17,11 @@ async function handleEnvelopeId(req, res, next, id) {
     next()
     return
   }
-  res.status(404).send("There is no envelope with that id")
+  res.status(404).send("There is no envelope with that id.")
 }
 
-function getUnusedAllotment(req, res, next) {
+async function getUnusedAllotment(req, res, next) {
+  const unusedAllotment = await getUnusedAllotment()
   res.send(unusedAllotment.toString())
 }
 
@@ -34,16 +35,12 @@ function getEnvelopeById(req, res, next) {
     res.send(JSON.stringify(envelope))
     return
   }
-  res.status(404).send("Not found")
+  res.status(404).send("Not found.")
 }
 
 async function createEnvelope(req, res, next) {
   const envelope = req.body
-  const envelopeIsInvalid = isInvalidEnvelope(
-    envelope,
-    envelopes.data,
-    unusedAllotment
-  )
+  const envelopeIsInvalid = isInvalidEnvelope(envelope)
   const categoryValueIsNotUnique = envelopes.columnNotUnique(
     "category",
     envelope
@@ -54,7 +51,7 @@ async function createEnvelope(req, res, next) {
   } else if (await categoryValueIsNotUnique) {
     res
       .status(400)
-      .send("Make sure that category is not a duplicate of existing data")
+      .send("Make sure that category is not a duplicate of existing data.")
     return
   }
   const createdEnvelope = await envelopes.insertRow(envelope)
@@ -62,7 +59,7 @@ async function createEnvelope(req, res, next) {
     res.status(201).send(JSON.stringify(createdEnvelope[0]))
     return
   }
-  res.status(400).send("Something went wrong with insert query")
+  res.status(400).send("Something went wrong with insert query.")
 }
 
 async function envelopeTransfer(req, res, next) {
@@ -88,14 +85,14 @@ async function envelopeTransfer(req, res, next) {
     res
       .status(404)
       .send(
-        `Not found: The From envelope with id = ${fromEnvelopeId} was not found`
+        `Not found: The From envelope with id = ${fromEnvelopeId} was not found.`
       )
     return
   } else if (toEnvelope.length <= 0) {
     res
       .status(404)
       .send(
-        `Not found: The To envelope with id = ${toEnvelopeId} was not found`
+        `Not found: The To envelope with id = ${toEnvelopeId} was not found.`
       )
     return
   }
@@ -109,7 +106,7 @@ async function envelopeTransfer(req, res, next) {
     res
       .status(400)
       .send(
-        "Make sure that the funds transfered are equal or less than the allotment that the from envelope has"
+        "Make sure that the funds transfered are equal or less than the allotment that the from envelope has."
       )
     return
   }
@@ -119,7 +116,7 @@ async function envelopeTransfer(req, res, next) {
     res.send(JSON.stringify([fromEnvelope[0], toEnvelope[0]]))
     return
   }
-  res.status(400).send("While updating rows something when wrong")
+  res.status(400).send("While updating rows something when wrong.")
 }
 
 async function seedEnvelopes(req, res, next) {
@@ -140,11 +137,7 @@ async function seedEnvelopes(req, res, next) {
   const results = []
   for (let i = 0; i < seededEnvelopes.length; i++) {
     const envelope = seededEnvelopes[i]
-    const envelopeIsInvalid = isInvalidEnvelope(
-      envelope,
-      envelopes.data,
-      unusedAllotment
-    )
+    const envelopeIsInvalid = isInvalidEnvelope(envelope)
     const categoryValueIsNotUnique = envelopes.columnNotUnique(
       "category",
       envelope
@@ -157,7 +150,7 @@ async function seedEnvelopes(req, res, next) {
         .status(400)
         .send(
           `Number ${i + 1}: ` +
-            "Make sure that category is not a duplicate of existing data"
+            "Make sure that category is not a duplicate of existing data."
         )
       return
     }
@@ -165,7 +158,7 @@ async function seedEnvelopes(req, res, next) {
     if (createdEnvelope.length === 0) {
       res
         .status(400)
-        .send(`Number ${i + 1}: Something went wrong with insert query`)
+        .send(`Number ${i + 1}: Something went wrong with insert query.`)
       return
     }
     results.push(createdEnvelope[0])
@@ -177,11 +170,7 @@ async function updateEnvelope(req, res, next) {
   const envelope = req.envelope
   const newEnvelope = req.body
   newEnvelope.allotment -= envelope.allotment
-  const newEnvelopeIsInvalid = await isInvalidEnvelope(
-    newEnvelope,
-    envelopes.data,
-    unusedAllotment
-  )
+  const newEnvelopeIsInvalid = await isInvalidEnvelope(newEnvelope)
   if (newEnvelopeIsInvalid) {
     res.status(400).send(newEnvelopeIsInvalid)
     return
@@ -192,21 +181,22 @@ async function updateEnvelope(req, res, next) {
     res.send(JSON.stringify(updatedEnvelope[0]))
     return
   }
-  res.status(400).send("Something wen wrong with update envelope query")
+  res.status(400).send("Something went wrong with update envelope query.")
 }
 
 async function updateUnusedAllotment(req, res, next) {
   let newUnusedAllotment = req.body.unusedAllotment
-  if (isNaN(parseFloat(newUnusedAllotment)) || !isFinite(newUnusedAllotment)) {
-    res
-      .status(400)
-      .send(
-        `The new Unused Allotment that is equal to ${newUnusedAllotment} must be a number.`
-      )
+  const newUnusedAllotmentIsNotNumeric = envelopes.isNotNumeric(
+    newUnusedAllotment,
+    "new Unused Allotment"
+  )
+  if (newUnusedAllotmentIsNotNumeric) {
+    res.status(400).send(newUnusedAllotmentIsNotNumeric)
     return
   }
-  unusedAllotment = newUnusedAllotment
-  res.send(JSON.stringify(newUnusedAllotment))
+  const updateUnusedAllotment =
+    envelopes.updateUnusedAllotment(newUnusedAllotment)
+  res.send(JSON.stringify(updateUnusedAllotment.toString()))
 }
 
 async function deleteEnvelopes(req, res, next) {
@@ -226,7 +216,6 @@ async function deleteEnvelopeById(req, res, next) {
 
 module.exports = {
   envelopes,
-  unusedAllotment,
   getUnusedAllotment,
   handleEnvelopeId,
   getEnvelopes,

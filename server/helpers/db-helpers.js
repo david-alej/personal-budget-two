@@ -1,10 +1,9 @@
-const { findTablebyName } = require("../db/db")
+const { pool } = require("../db/db")
 
 class Table {
   constructor(modelType) {
     this.modelType = modelType
-    this.model = findTablebyName(modelType)
-    this.data = this.model.data
+    this.data = this.pool
   }
 
   async getAllRows() {
@@ -24,6 +23,13 @@ class Table {
 
   async insertRow(instance) {
     const properties = Object.getOwnPropertyNames(instance)
+    const values = Object.values(instance)
+    const indexOfId = properties.indexOf("id")
+    if (indexOfId >= 0) {
+      properties.splice(indexOfId, 1)
+      values.splice(indexOfId, 1)
+    }
+
     let queryInputSelectors = ""
     for (let i = 1; i < properties.length + 1; i++) {
       queryInputSelectors += "$" + `${i}` + ", "
@@ -32,7 +38,7 @@ class Table {
     queryInputSelectors = "(" + queryInputSelectors.slice(0, -2) + ")"
     const insertQuery = await this.data.query(
       `INSERT INTO ${this.modelType} ${queryInputRefrences} VALUES ${queryInputSelectors} RETURNING *;`,
-      Object.values(instance)
+      values
     )
     return insertQuery.rows
   }
@@ -41,11 +47,10 @@ class Table {
     const properties = Object.getOwnPropertyNames(instance)
     const values = Object.values(instance)
     const indexOfId = properties.indexOf("id")
-
-    values.unshift(values.splice(indexOfId, 1)[0])
-    const removeId = properties.splice(indexOfId, 1)
-    console.log(properties, values)
-
+    if (indexOfId >= 0) {
+      values.unshift(values.splice(indexOfId, 1)[0])
+      properties.splice(indexOfId, 1)
+    }
     let updateQuerySelectors = ""
     for (let i = 2; i - 2 < properties.length; i++) {
       updateQuerySelectors += properties[i - 2] + " = " + "$" + `${i}, `
@@ -53,9 +58,21 @@ class Table {
     updateQuerySelectors = updateQuerySelectors.slice(0, -2) + " WHERE id = $1"
     const updateQuery = await this.data.query(
       `UPDATE ${this.modelType} SET ${updateQuerySelectors} RETURNING *;`,
-      Object.values(instance)
+      values
     )
     return updateQuery.rows
+  }
+
+  async updateUnusedAllotment(updatedAllotment, operation = "") {
+    let queryOperation = "value "
+    if (operation == "+" || operation === "-") {
+      queryOperation += operation
+    }
+    const updateUnusedAllotmentQuery = pool.query(
+      `UPDATE varaibles SET value = ${queryOperation} $2 WHERE name = $1;`,
+      ["unusedAllotment", updatedAllotment]
+    )
+    return (await updateUnusedAllotmentQuery).rows
   }
 
   async deleteAllRows() {
@@ -78,7 +95,7 @@ class Table {
 
   isNotNumeric(number, nameOfNumber) {
     if (isNaN(parseFloat(number)) || !isFinite(number)) {
-      return "Change " + nameOfNumber + " to be a number"
+      return "Change " + nameOfNumber + " to be a number."
     }
     return false
   }

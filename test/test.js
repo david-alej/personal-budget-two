@@ -1,13 +1,10 @@
 const { assert } = require("chai")
 const request = require("supertest")
+const { describe } = require("mocha")
 
 const app = require("../server")
-
-const { db, resetDatabase } = require("../server/db/db")
 const { Table } = require("../server/helpers/db-helpers")
-const { describe } = require("mocha")
 const { envelopes } = require("../server/helpers/envelope-helpers")
-const { transactions } = require("../server/helpers/transaction-helpers")
 
 const _envelopes = new Table("envelopes")
 const ok = 200
@@ -15,6 +12,27 @@ const created = 201
 const noContent = 204
 const badRequest = 400
 const notFound = 404
+
+async function resetDatabase(
+  deleteTransactions = true,
+  seedDatabase = true,
+  seedTransactions = true
+) {
+  if (deleteTransactions) {
+    await request(app).delete("/api/transactions").send()
+  }
+  await request(app).delete("/api/envelopes").send()
+  await request(app)
+    .put("/api/envelopes/unused-allotment")
+    .type("form")
+    .send({ unusedAllotment: 500 })
+  if (seedDatabase) {
+    await request(app).post("/api/envelopes/seed-envelopes")
+    if (seedTransactions) {
+      await request(app).post("/api/transactions/seed-transactions")
+    }
+  }
+}
 
 // Database helpers
 describe("Database helpers", () => {
@@ -82,7 +100,7 @@ describe("Database helpers", () => {
 describe("/api/envelopes", () => {
   beforeEach(async () => {
     await resetDatabase(false, true, false)
-    envelopes.totalAllotment = 500
+    unusedAllotment = 500
   })
 
   describe("GET requests", () => {
@@ -108,7 +126,7 @@ describe("/api/envelopes", () => {
     })
 
     it("get envelope with invalid id = 87", async () => {
-      const expected = "There is no envelope with that id"
+      const expected = "There is no envelope with that id."
       const id = "87"
       const response = await request(app)
         .get("/api/envelopes/" + id)
@@ -118,7 +136,7 @@ describe("/api/envelopes", () => {
     })
 
     it("get envelope with invalid id = hi", async () => {
-      const expected = "Change envelopes's id to be a number"
+      const expected = "Change envelopes's id to be a number."
       const id = "hi"
       const response = await request(app)
         .get("/api/envelopes/" + id)
@@ -130,7 +148,7 @@ describe("/api/envelopes", () => {
     it("get total allotment", async () => {
       const expected = 500
       const response = await request(app)
-        .get("/api/envelopes/total-allotment")
+        .get("/api/envelopes/unused-allotment")
         .send()
       assert.equal(response.text, expected)
       assert.strictEqual(response.status, ok)
@@ -151,7 +169,7 @@ describe("/api/envelopes", () => {
 
     it("Invalid create request that has body missing one or both of category and allotment", async () => {
       const expected =
-        "Make sure to include both category and allotment on the request body"
+        "Make sure to include both category and allotment on the request body."
       const requestBody = { allotment: 50 }
       const response = await request(app)
         .post("/api/envelopes")
@@ -163,7 +181,7 @@ describe("/api/envelopes", () => {
 
     it("invalid create request that has body having allotment as a string", async () => {
       const expected =
-        "Make sure that category is a string and allotment is a number"
+        "Make sure that category is a string and allotment is a number."
       const requestBody = { category: "revnovations", allotment: "no" }
       const response = await request(app)
         .post("/api/envelopes")
@@ -175,7 +193,7 @@ describe("/api/envelopes", () => {
 
     it("invalid create request that has body having category as a number", async () => {
       const expected =
-        "Make sure that category is a string and allotment is a number"
+        "Make sure that category is a string and allotment is a number."
       const requestBody = { category: 5, allotment: 5 }
       const response = await request(app)
         .post("/api/envelopes")
@@ -187,7 +205,7 @@ describe("/api/envelopes", () => {
 
     it("invalid create request that has body violating the unique constraint on the table", async () => {
       const expected =
-        "Make sure that category is not a duplicate of existing data"
+        "Make sure that category is not a duplicate of existing data."
       const requestBody = { category: "savings", allotment: 5 }
       const response = await request(app)
         .post("/api/envelopes")
@@ -213,7 +231,7 @@ describe("/api/envelopes", () => {
 
     it("invalid transfer of funds that is more than the from envelope has", async () => {
       const expected =
-        "Make sure that the funds transfered are equal or less than the allotment that the from envelope has"
+        "Make sure that the funds transfered are equal or less than the allotment that the from envelope has."
       const transferFunds = { funds: 60 }
       const response = await request(app)
         .post("/api/envelopes/transfer/2/1")
@@ -309,7 +327,7 @@ describe("/api/envelopes", () => {
 
     it("Invalid update where request body with allotment exceeding upper limit", async () => {
       const expected =
-        "With new allotment, the total used allotment has exceeded the total allotment limit, make new allotement less"
+        "With new allotment, the total available allotment of all the envelopes has exceeded the unsued allotment limit by 1700 $, make new allotement less."
       const envelope = { category: "games", allotment: 2000 }
       const response = await request(app)
         .put("/api/envelopes/3")
@@ -321,35 +339,37 @@ describe("/api/envelopes", () => {
 
     it("Update total allotment changing it from 500 to 600", async () => {
       const expected = 600
-      const totalAllotment = { totalAllotment: expected }
+      const _unusedAllotment = { unusedAllotment: expected }
       const response = await request(app)
-        .put("/api/envelopes/total-allotment")
+        .put("/api/envelopes/unused-allotment")
         .type("form")
-        .send(totalAllotment)
+        .send(_unusedAllotment)
       console.log(response.text)
       assert.equal(JSON.parse(response.text), expected)
       assert.strictEqual(response.status, ok)
     })
 
     it("Update total allotment with non-numeric total allotment = yo", async () => {
-      const expected = "The new Total Allotment that is equal to"
-      const totalAllotment = { totalAllotment: "yo" }
+      const expected =
+        "The new Unused Allotment that is equal to yo must be a number."
+      const _unusedAllotment = { unusedAllotment: "yo" }
       const response = await request(app)
-        .put("/api/envelopes/total-allotment")
+        .put("/api/envelopes/unused-allotment")
         .type("form")
-        .send(totalAllotment)
-      assert.include(response.text, expected)
+        .send(_unusedAllotment)
+      assert.equal(response.text, expected)
       assert.strictEqual(response.status, badRequest)
     })
 
-    it("Update total allotment with no totalAllotment property in request body", async () => {
-      const expected = "The new Total Allotment that is equal to"
-      const totalAllotment = { yo: "yo" }
+    it("Update total allotment with no unusedAllotment property in request body", async () => {
+      const expected =
+        "The new Unused Allotment that is equal to undefined must be a number."
+      const _unusedAllotment = { yo: "yo" }
       const response = await request(app)
-        .put("/api/envelopes/total-allotment")
+        .put("/api/envelopes/unused-allotment")
         .type("form")
-        .send(totalAllotment)
-      assert.include(response.text, expected)
+        .send(_unusedAllotment)
+      assert.equal(response.text, expected)
       assert.strictEqual(response.status, badRequest)
     })
   })
@@ -373,7 +393,7 @@ describe("/api/envelopes", () => {
 describe("/api/transactions", () => {
   beforeEach(async () => {
     const allotmentSpent = await resetDatabase(true)
-    envelopes.totalAllotment = 500 - allotmentSpent
+    unusedAllotment = 500 - allotmentSpent
   })
 
   after(async () => {
@@ -420,7 +440,7 @@ describe("/api/transactions", () => {
     })
 
     it("get transaction with invalid id = 87", async () => {
-      const expected = "There is no transaction with that id"
+      const expected = "There is no transaction with that id."
       const id = "87"
       const response = await request(app)
         .get("/api/transactions/" + id)
@@ -454,13 +474,14 @@ describe("/api/transactions", () => {
         .post("/api/transactions")
         .type("form")
         .send(transaction)
+      console.log(response.text)
       assert.include(JSON.parse(response.text), expected)
       assert.equal(response.status, created)
     })
 
     it("Invalid create request that has body missing one or many of date, payment, shop, or envelope_id", async () => {
       const expected =
-        "Make sure to include date, payment, shop, and envelope_id on the request body"
+        "Make sure to include date, payment, shop, and envelope_id on the request body."
       const transaction = { envelope_id: 3, shop: "Amazon" }
       const response = await request(app)
         .post("/api/transactions")
@@ -472,7 +493,7 @@ describe("/api/transactions", () => {
 
     it("invalid create request that has body having envelope_id as a string", async () => {
       const expected =
-        "Make sure that the date is a string, shop is a strings, and payment and envelope_id are numbers"
+        "Make sure that the date is a string, shop is a strings, and payment and envelope_id are numbers."
       const transaction = {
         id: 3,
         date: new Date("Sep 19 2023").toString(),
@@ -490,7 +511,7 @@ describe("/api/transactions", () => {
 
     it("invalid create request that has body having shop as a number", async () => {
       const expected =
-        "Make sure that the date is a string, shop is a strings, and payment and envelope_id are numbers"
+        "Make sure that the date is a string, shop is a strings, and payment and envelope_id are numbers."
       const transaction = {
         id: 3,
         date: new Date("Sep 19 2023").toString(),
@@ -507,7 +528,8 @@ describe("/api/transactions", () => {
     })
 
     it("invalid create request that has body violating the unique constraint on the transaction column, date", async () => {
-      const expected = "Make sure that date is not a duplicate of existing data"
+      const expected =
+        "Make sure that date is not a duplicate of existing data."
       const transaction = {
         id: 3,
         date: new Date("Sep 18 2023").toString(),
@@ -564,24 +586,36 @@ describe("/api/transactions", () => {
       }
       const transaction = expected
 
-      const envelopesBeforeUpdate = await envelopes.getAllRows()
-      const totalAllotmentBeforeUpdate = envelopes.totalAllotment
+      const envelopesBeforeUpdate = await request(app)
+        .get("/api/envelopes")
+        .send()
+      const _unusedAllotmentBeforeUpdate = await request(app)
+        .get("/api/envelopes/unused-allotment")
+        .send()
       const response = await request(app)
         .put("/api/transactions/1")
         .type("form")
         .send(transaction)
-      const envelopesAfterUpdate = await envelopes.getAllRows()
-      const totalAllotmentAfterUpdate = envelopes.totalAllotment
-
-      assert.include(JSON.parse(response.text), expected)
+      const envelopesAfterUpdate = await request(app)
+        .get("/api/envelopes")
+        .send()
+      const _unusedAllotmentAfterUpdate = await request(app)
+        .get("/api/envelopes/unused-allotment")
+        .send()
+      console.log(response.text)
+      console.log(
+        _unusedAllotmentBeforeUpdate.text,
+        _unusedAllotmentAfterUpdate.text
+      )
+      assert.deepEqual(JSON.parse(response.text), expected)
       assert.equal(response.status, ok)
       assert.strictEqual(
-        totalAllotmentBeforeUpdate - paymentDifference,
-        totalAllotmentAfterUpdate
+        _unusedAllotmentBeforeUpdate.text - paymentDifference,
+        _unusedAllotmentAfterUpdate.text
       )
       assert.strictEqual(
-        envelopesBeforeUpdate[1].allotment - paymentDifference,
-        envelopesAfterUpdate[1].allotment
+        envelopesBeforeUpdate.text[1].allotment - paymentDifference,
+        envelopesAfterUpdate.text[1].allotment
       )
     })
 
@@ -598,19 +632,19 @@ describe("/api/transactions", () => {
       })
 
       const envelopesBeforeUpdate = await envelopes.getAllRows()
-      const totalAllotmentBeforeUpdate = envelopes.totalAllotment
+      const _unusedAllotmentBeforeUpdate = unusedAllotment
       const response = await request(app)
         .put("/api/transactions/1")
         .type("form")
         .send(transaction)
       const envelopesAfterUpdate = await envelopes.getAllRows()
-      const totalAllotmentAfterUpdate = envelopes.totalAllotment
+      const _unusedAllotmentAfterUpdate = unusedAllotment
 
       assert.include(JSON.parse(response.text), expected)
       assert.equal(response.status, ok)
       assert.strictEqual(
-        totalAllotmentBeforeUpdate - paymentDifference,
-        totalAllotmentAfterUpdate
+        _unusedAllotmentBeforeUpdate - paymentDifference,
+        _unusedAllotmentAfterUpdate
       )
       assert.strictEqual(
         envelopesBeforeUpdate[1].allotment + previousPayment,
@@ -624,7 +658,7 @@ describe("/api/transactions", () => {
 
     it("Invalid update where transaction payment exceeds envelopes allotment", async () => {
       const expected =
-        "With new allotment, the used allotment in the envelope has exceeded the allotment limit, make payment less"
+        "The new payment exceeds the envelope's available allotment, make payment less."
       const transaction = {
         id: 1,
         date: "Tue Sep 12 2023 00:00:00 GMT-0500 (Central Daylight Time)",
@@ -641,7 +675,7 @@ describe("/api/transactions", () => {
     })
 
     it("Update invalid where the envelope_id does not exist on the envelopes table", async () => {
-      const expected = "There is no envelope by that envelope_id = 5"
+      const expected = "There is no envelope by that envelope_id = 5."
       const transaction = {
         id: 1,
         date: "Tue Sep 12 2023 00:00:00 GMT-0500 (Central Daylight Time)",
@@ -685,11 +719,11 @@ describe("/api/transactions", () => {
   describe("scope tests", async () => {
     it("Update total allotment from 500 to 600 then check to see if I can create a new envelope that uses all 600 allotment", async () => {
       const expected = 600
-      const totalAllotment = { totalAllotment: expected }
+      const _unusedAllotment = { unusedAllotment: expected }
       const response = await request(app)
-        .put("/api/envelopes/total-allotment")
+        .put("/api/envelopes/unused-allotment")
         .type("form")
-        .send(totalAllotment)
+        .send(_unusedAllotment)
       assert.equal(JSON.parse(response.text), expected)
       assert.strictEqual(response.status, ok)
       const expectedTwo = {
@@ -707,11 +741,11 @@ describe("/api/transactions", () => {
 
     it("Checking to see if the transactions router can access up to date value of totalAlltoment from envelopes router", async () => {
       const expected = 600
-      const totalAllotment = { totalAllotment: expected }
+      const _unusedAllotment = { unusedAllotment: expected }
       const response = await request(app)
-        .put("/api/envelopes/total-allotment")
+        .put("/api/envelopes/unused-allotment")
         .type("form")
-        .send(totalAllotment)
+        .send(_unusedAllotment)
       assert.equal(JSON.parse(response.text), expected)
     })
   })
