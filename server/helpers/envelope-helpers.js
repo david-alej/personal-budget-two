@@ -1,6 +1,7 @@
 const { Table } = require("./db-helpers")
 const { isInvalidEnvelope } = require("../db/db")
 const envelopes = new Table("envelopes")
+const unusedAllotment = envelopes.model.unusedAllotment
 
 async function handleEnvelopeId(req, res, next, id) {
   const idIsNotNumeric = envelopes.isNotNumeric(id, "envelopes's id")
@@ -19,8 +20,8 @@ async function handleEnvelopeId(req, res, next, id) {
   res.status(404).send("There is no envelope with that id")
 }
 
-function getTotalAllotment(req, res, next) {
-  res.send(envelopes.totalAllotment.toString())
+function getUnusedAllotment(req, res, next) {
+  res.send(unusedAllotment.toString())
 }
 
 async function getEnvelopes(req, res, next) {
@@ -41,7 +42,7 @@ async function createEnvelope(req, res, next) {
   const envelopeIsInvalid = isInvalidEnvelope(
     envelope,
     envelopes.data,
-    envelopes.totalAllotment
+    unusedAllotment
   )
   const categoryValueIsNotUnique = envelopes.columnNotUnique(
     "category",
@@ -142,7 +143,7 @@ async function seedEnvelopes(req, res, next) {
     const envelopeIsInvalid = isInvalidEnvelope(
       envelope,
       envelopes.data,
-      envelopes.totalAllotment
+      unusedAllotment
     )
     const categoryValueIsNotUnique = envelopes.columnNotUnique(
       "category",
@@ -179,10 +180,11 @@ async function updateEnvelope(req, res, next) {
   const newEnvelopeIsInvalid = await isInvalidEnvelope(
     newEnvelope,
     envelopes.data,
-    envelopes._totalAllotment
+    unusedAllotment
   )
   if (newEnvelopeIsInvalid) {
     res.status(400).send(newEnvelopeIsInvalid)
+    return
   }
   newEnvelope.allotment -= -envelope.allotment
   const updatedEnvelope = await envelopes.updateRow(newEnvelope)
@@ -193,22 +195,23 @@ async function updateEnvelope(req, res, next) {
   res.status(400).send("Something wen wrong with update envelope query")
 }
 
-async function updateTotalAllotment(req, res, next) {
-  let newTotalAllotment = req.body.totalAllotment
-  if (isNaN(parseFloat(newTotalAllotment)) || !isFinite(newTotalAllotment)) {
+async function updateUnusedAllotment(req, res, next) {
+  let newUnusedAllotment = req.body.unusedAllotment
+  if (isNaN(parseFloat(newUnusedAllotment)) || !isFinite(newUnusedAllotment)) {
     res
       .status(400)
       .send(
-        `The new Total Allotment that is equal to ${newTotalAllotment} must be a number.`
+        `The new Unused Allotment that is equal to ${newUnusedAllotment} must be a number.`
       )
     return
   }
-  envelopes.totalAllotment = newTotalAllotment
-  res.send(JSON.stringify(newTotalAllotment))
+  unusedAllotment = newUnusedAllotment
+  res.send(JSON.stringify(newUnusedAllotment))
 }
 
 async function deleteEnvelopes(req, res, next) {
   const emptyTable = await envelopes.deleteAllRows()
+  await envelopes.data.query("ALTER SEQUENCE envelopes_id_seq RESTART WITH 1;")
   res.status(204).send(emptyTable)
 }
 
@@ -223,7 +226,8 @@ async function deleteEnvelopeById(req, res, next) {
 
 module.exports = {
   envelopes,
-  getTotalAllotment,
+  unusedAllotment,
+  getUnusedAllotment,
   handleEnvelopeId,
   getEnvelopes,
   getEnvelopeById,
@@ -231,7 +235,7 @@ module.exports = {
   envelopeTransfer,
   seedEnvelopes,
   updateEnvelope,
-  updateTotalAllotment,
+  updateUnusedAllotment,
   deleteEnvelopes,
   deleteEnvelopeById,
 }

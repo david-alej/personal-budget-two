@@ -5,7 +5,6 @@ class Table {
     this.modelType = modelType
     this.model = findTablebyName(modelType)
     this.data = this.model.data
-    this._totalAllotment = this.model.totalAllotment
   }
 
   async getAllRows() {
@@ -40,9 +39,16 @@ class Table {
 
   async updateRow(instance) {
     const properties = Object.getOwnPropertyNames(instance)
+    const values = Object.values(instance)
+    const indexOfId = properties.indexOf("id")
+
+    values.unshift(values.splice(indexOfId, 1)[0])
+    const removeId = properties.splice(indexOfId, 1)
+    console.log(properties, values)
+
     let updateQuerySelectors = ""
-    for (let i = 2; i - 1 < properties.length; i++) {
-      updateQuerySelectors += properties[i - 1] + " = " + "$" + `${i}, `
+    for (let i = 2; i - 2 < properties.length; i++) {
+      updateQuerySelectors += properties[i - 2] + " = " + "$" + `${i}, `
     }
     updateQuerySelectors = updateQuerySelectors.slice(0, -2) + " WHERE id = $1"
     const updateQuery = await this.data.query(
@@ -86,15 +92,6 @@ class Table {
       return false
     })
     return uniquenessViolation
-  }
-
-  set totalAllotment(newTotalAllotment) {
-    this._totalAllotment = newTotalAllotment
-    return
-  }
-
-  get totalAllotment() {
-    return this._totalAllotment
   }
 }
 

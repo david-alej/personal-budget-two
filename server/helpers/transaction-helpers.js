@@ -1,8 +1,24 @@
 const { Table } = require("./db-helpers")
 const { isInvalidTransaction } = require("../db/db")
-const { envelopes } = require("./envelope-helpers")
+const { envelopes, unusedAllotment } = require("./envelope-helpers")
 
 const transactions = new Table("transactions")
+
+// Function right below comment is a helper to delete envelope-helpers
+async function handleTransactionDeletion(transaction, preErrorMessage = "") {
+  const restoreEnvelopeAllotmentQuery = await transactions.data.query(
+    "UPDATE envelopes SET allotment = allotment + $2 WHERE ID = $1 RETURNING *;",
+    [transaction.envelope_id, transaction.payment]
+  )
+  if (restoreEnvelopeAllotmentQuery.length === 0) {
+    return preErrorMessage + "Restoring allotment query did not work"
+  }
+  unusedAllotment -= -transaction.payment
+  const isDeleted = await transactions.deleteRowById(transaction.id)
+  if (isDeleted.length === 0) {
+    return preErrorMessage + "Delete query was not succesfull"
+  }
+}
 
 async function handleTransactionId(req, res, next, id) {
   const idIsNotNumeric = transactions.isNotNumeric(id, "id")
@@ -58,7 +74,7 @@ async function createTransaction(req, res, next) {
     res.status(400).send("Update to envelopes was not possible")
     return
   }
-  envelopes.totalAllotment -= transaction.payment
+  unusedAllotment -= transaction.payment
   const createdTransaction = await transactions.insertRow(transaction)
   if (createdTransaction.length > 0) {
     res.status(201).send(JSON.stringify(createdTransaction[0]))
@@ -112,7 +128,7 @@ async function seedTransactions(req, res, next) {
       res.status(400).send(preMessage + "Update to envelopes was not possible")
       return
     }
-    envelopes.totalAllotment -= transaction.payment
+    unusedAllotment -= transaction.payment
     const createdTransaction = await transactions.insertRow(transaction)
     if (createdTransaction.length === 0) {
       res
@@ -158,7 +174,7 @@ async function updateTransaction(req, res, next) {
       )
     return
   }
-  envelopes.totalAllotment -= paymentDifference
+  unusedAllotment -= paymentDifference
   const updatedTransaction = await transactions.updateRow(newTransaction)
   if (updatedTransaction.length > 0) {
     res.send(JSON.stringify(updatedTransaction[0]))
@@ -168,21 +184,38 @@ async function updateTransaction(req, res, next) {
 }
 
 async function deleteTransactions(req, res, next) {
-  const emptyTable = await transactions.deleteAllRows()
-  if (emptyTable.length === 0) {
-    res.status(204).send()
+  const transactionsTable = await transactions.getAllRows()
+  for (let i = 0; i < transactionsTable.length; i++) {
+    const transaction = transactionsTable[i]
+    const preErrorMessage = `Transaction with id = ${i + 1}: `
+    const isDeleted = await handleTransactionDeletion(
+      transaction,
+      preErrorMessage
+    )
+    if (typeof isDeleted === "string") {
+      res.status(400).send(isDeleted)
+      return
+    }
+  }
+
+  const emptyTable = await transactions.getAllRows()
+  if (emptyTable.length !== 0) {
+    res.status(400).send("Delete all transactions iteratively did not work")
     return
   }
-  res.status(400).send("Delete all transactions query did not work")
+  await transactions.data.query(
+    "ALTER SEQUENCE transactions_id_seq RESTART WITH 1;"
+  )
+  res.status(204).send()
 }
 
 async function deleteTransactionById(req, res, next) {
-  const isDeleted = await transactions.deleteRowById(req.transactionId)
-  if (isDeleted.length > 0) {
-    res.status(204).send()
-    return
+  const transaction = await transactions.getRowById(req.transactionId)
+  const isDeleted = await handleTransactionDeletion(transaction[0])
+  if (typeof isDeleted === "string") {
+    res.status(400).send(isDeleted)
   }
-  res.status(404).send()
+  res.status(204).send()
 }
 
 module.exports = {

@@ -19,12 +19,12 @@ types.setTypeParser(1700, function (val) {
   return parseFloat(val)
 })
 
-let _totalAllotment = 500
+let _unusedAllotment = 500
 
 async function isInvalidEnvelope(
   instance,
   pool = _pool,
-  totalAllotment = _totalAllotment
+  unusedAllotment = _unusedAllotment
 ) {
   if (
     !Object.hasOwn(instance, "allotment") ||
@@ -45,9 +45,12 @@ async function isInvalidEnvelope(
     "SELECT sum(allotment) FROM  envelopes;"
   )
   const allotmentUsed = Number(allotmentUsedQuery.rows[0].sum)
-  const allotmentRemaining = totalAllotment - allotmentUsed - instance.allotment
+  const allotmentRemaining =
+    unusedAllotment - allotmentUsed - instance.allotment
   if (allotmentRemaining < 0) {
-    return "With new allotment, the total used allotment has exceeded the total allotment limit, make new allotement less"
+    return `With new allotment, the total available allotment of all the envelopes has exceeded the unsued allotment limit by ${
+      -1 * allotmentRemaining
+    }, make new allotement less`
   }
   return false
 }
@@ -84,7 +87,7 @@ async function isInvalidTransaction(instance) {
   const allotmentUsed = Number(allotmentUsedQuery.rows[0].allotment)
   const allotmentAfterTransaction = allotmentUsed - instance.payment
   if (allotmentAfterTransaction < 0) {
-    return "With new allotment, the used allotment in the envelope has exceeded the allotment limit, make payment less"
+    return "The new payment exceeds the envelope's available allotment, make payment less"
   }
   return false
 }
@@ -93,7 +96,7 @@ const db = {
   allEnvelopes: {
     data: _pool,
     isInvalid: isInvalidEnvelope,
-    totalAllotment: _totalAllotment,
+    unusedAllotment: _unusedAllotment,
   },
 
   allTransactions: {
@@ -126,7 +129,7 @@ const transactionFactory = async (date, payment, shop, envelope_id) => {
     "UPDATE envelopes SET allotment = allotment - $2 WHERE id = $1 RETURNING *;",
     [envelope_id, payment]
   )
-  db.allEnvelopes.totalAllotment -= payment
+  db.allEnvelopes.unusedAllotment -= payment
   const insertTransactionQuery = await _pool.query(
     "INSERT INTO transactions (date, payment, shop, envelope_id) VALUES ($1, $2, $3, $4);",
     Object.values(transaction)
@@ -169,15 +172,6 @@ async function resetDatabase(
   await _pool.query("ALTER SEQUENCE envelopes_id_seq RESTART WITH 1;")
   if (seed) return await seedData(seedTransactions)
 }
-
-// const dataExists = async () => {
-//   const query = await _pool.query("SELECT * FROM envelopes ORDER BY id ASC;")
-//   return query.rows.length !== 0
-// }
-
-// if (!dataExists) {
-//   seedData()
-// }
 
 function findTablebyName(modelType) {
   switch (modelType) {

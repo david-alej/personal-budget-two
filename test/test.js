@@ -376,6 +376,10 @@ describe("/api/transactions", () => {
     envelopes.totalAllotment = 500 - allotmentSpent
   })
 
+  after(async () => {
+    await resetDatabase(true, false)
+  })
+
   describe("GET transactions", () => {
     it("get all transactions", async () => {
       const expected = [
@@ -655,14 +659,26 @@ describe("/api/transactions", () => {
   })
 
   describe("DELETE requests", () => {
-    it("deletes all transactions", async () => {
+    it("deletes all transactions and seeing if envelopes got their allotment restored", async () => {
       const response = await request(app).delete("/api/transactions/").send()
       assert.equal(response.status, noContent)
+
+      const expectedTwo = [
+        { id: 1, category: "groceries", allotment: 150 },
+        { id: 2, category: "orderingOut", allotment: 50 },
+        { id: 3, category: "savings", allotment: 125 },
+      ]
+      const responseTwo = await request(app).get("/api/envelopes").send()
+      assert.deepEqual(JSON.parse(responseTwo.text), expectedTwo)
     })
 
-    it("delete transaction with id = 2", async () => {
+    it("delete transaction with id = 2 and check if corresponding envelope got their allotment restored", async () => {
       const response = await request(app).delete("/api/transactions/2").send()
       assert.equal(response.status, noContent)
+
+      const expectedTwo = { id: 1, category: "groceries", allotment: 150 }
+      const responseTwo = await request(app).get("/api/envelopes/1").send()
+      assert.deepEqual(JSON.parse(responseTwo.text), expectedTwo)
     })
   })
 
