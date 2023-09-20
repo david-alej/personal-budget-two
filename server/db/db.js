@@ -155,7 +155,11 @@ async function seedData(transactions = false) {
   }
 }
 
-async function resetDatabase(transactions = false) {
+async function resetDatabase(
+  transactions = true,
+  seed = true,
+  seedTransactions = true
+) {
   const _pool = db.allEnvelopes.data
   if (transactions) {
     await _pool.query("DELETE FROM transactions WHERE true;")
@@ -163,8 +167,7 @@ async function resetDatabase(transactions = false) {
   }
   await _pool.query("DELETE FROM envelopes WHERE true;")
   await _pool.query("ALTER SEQUENCE envelopes_id_seq RESTART WITH 1;")
-
-  return await seedData(transactions)
+  if (seed) return await seedData(seedTransactions)
 }
 
 // const dataExists = async () => {

@@ -28,7 +28,7 @@ envelopesRouter.post("/", createEnvelope)
 
 envelopesRouter.post("/transfer/:from/:to", envelopeTransfer)
 
-envelopesRouter.get("/seed-envelopes", seedEnvelopes)
+envelopesRouter.post("/seed-envelopes", seedEnvelopes)
 
 envelopesRouter.put("/total-allotment", updateTotalAllotment)
 

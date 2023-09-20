@@ -136,6 +136,7 @@ async function seedEnvelopes(req, res, next) {
       allotment: 125,
     },
   ]
+  const results = []
   for (let i = 0; i < seededEnvelopes.length; i++) {
     const envelope = seededEnvelopes[i]
     const envelopeIsInvalid = isInvalidEnvelope(
@@ -148,20 +149,27 @@ async function seedEnvelopes(req, res, next) {
       envelope
     )
     if (await envelopeIsInvalid) {
-      res.status(400).send(await envelopeIsInvalid)
+      res.status(400).send(`Number ${i + 1}: ` + (await envelopeIsInvalid))
       return
     } else if (await categoryValueIsNotUnique) {
       res
         .status(400)
-        .send("Make sure that category is not a duplicate of existing data")
+        .send(
+          `Number ${i + 1}: ` +
+            "Make sure that category is not a duplicate of existing data"
+        )
       return
     }
     const createdEnvelope = await envelopes.insertRow(envelope)
-    if (createdEnvelope.length > 0) {
-      res.status(201).send(JSON.stringify(createdEnvelope[0]))
+    if (createdEnvelope.length === 0) {
+      res
+        .status(400)
+        .send(`Number ${i + 1}: Something went wrong with insert query`)
       return
     }
+    results.push(createdEnvelope[0])
   }
+  res.status(201).send(JSON.stringify(results))
 }
 
 async function updateEnvelope(req, res, next) {

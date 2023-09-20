@@ -18,13 +18,8 @@ const notFound = 404
 
 // Database helpers
 describe("Database helpers", () => {
-  before(async () => {
-    const pool = db.allEnvelopes.data
-    await pool.query("DELETE FROM transactions WHERE true;")
-    await pool.query("ALTER SEQUENCE transactions_id_seq RESTART WITH 1;")
-  })
   beforeEach(async () => {
-    await resetDatabase()
+    await resetDatabase(true, true, false)
   })
   describe("Get helpers", () => {
     it("getting all envelopes", async () => {
@@ -86,7 +81,7 @@ describe("Database helpers", () => {
 // envelopes tests
 describe("/api/envelopes", () => {
   beforeEach(async () => {
-    await resetDatabase()
+    await resetDatabase(false, true, false)
     envelopes.totalAllotment = 500
   })
 
@@ -271,6 +266,33 @@ describe("/api/envelopes", () => {
       assert.include(response.text, expected)
       assert.strictEqual(response.status, badRequest)
     })
+
+    it("Seed envelopes", async () => {
+      await resetDatabase(false, false)
+      const expected = [
+        {
+          category: "groceries",
+          allotment: 150,
+        },
+        {
+          category: "orderingOut",
+          allotment: 50,
+        },
+        {
+          category: "savings",
+          allotment: 125,
+        },
+      ]
+      let response = await request(app)
+        .post("/api/envelopes/seed-envelopes")
+        .type("form")
+        .send()
+      assert.equal(response.status, created)
+      response = JSON.parse(response.text)
+      assert.include(response[0], expected[0])
+      assert.include(response[1], expected[1])
+      assert.include(response[2], expected[2])
+    })
   })
 
   describe("PUT requests", () => {
@@ -301,9 +323,10 @@ describe("/api/envelopes", () => {
       const expected = 600
       const totalAllotment = { totalAllotment: expected }
       const response = await request(app)
-        .put("/api/envelopes/totalAllotment")
+        .put("/api/envelopes/total-allotment")
         .type("form")
         .send(totalAllotment)
+      console.log(response.text)
       assert.equal(JSON.parse(response.text), expected)
       assert.strictEqual(response.status, ok)
     })
@@ -312,7 +335,7 @@ describe("/api/envelopes", () => {
       const expected = "The new Total Allotment that is equal to"
       const totalAllotment = { totalAllotment: "yo" }
       const response = await request(app)
-        .put("/api/envelopes/totalAllotment")
+        .put("/api/envelopes/total-allotment")
         .type("form")
         .send(totalAllotment)
       assert.include(response.text, expected)
@@ -323,7 +346,7 @@ describe("/api/envelopes", () => {
       const expected = "The new Total Allotment that is equal to"
       const totalAllotment = { yo: "yo" }
       const response = await request(app)
-        .put("/api/envelopes/totalAllotment")
+        .put("/api/envelopes/total-allotment")
         .type("form")
         .send(totalAllotment)
       assert.include(response.text, expected)
@@ -496,7 +519,31 @@ describe("/api/transactions", () => {
       assert.equal(response.status, badRequest)
     })
 
-    // make test when envelope_id does not exist
+    it("seed transaction", async () => {
+      await resetDatabase(true, true, false)
+      const expected = [
+        {
+          id: 1,
+          date: "Tue Sep 12 2023 00:00:00 GMT-0500 (Central Daylight Time)",
+          envelope_id: 2,
+          payment: 50,
+          shop: "Wingstop",
+        },
+        {
+          id: 2,
+          date: "Mon Sep 18 2023 00:00:00 GMT-0500 (Central Daylight Time)",
+          envelope_id: 1,
+          payment: 70,
+          shop: "Walmart",
+        },
+      ]
+      let response = await request(app)
+        .post("/api/transactions/seed-transactions")
+        .type("form")
+        .send()
+      assert.deepEqual(JSON.parse(response.text), expected)
+      assert.equal(response.status, created)
+    })
   })
 
   describe("PUT requests", () => {
@@ -624,7 +671,7 @@ describe("/api/transactions", () => {
       const expected = 600
       const totalAllotment = { totalAllotment: expected }
       const response = await request(app)
-        .put("/api/envelopes/totalAllotment")
+        .put("/api/envelopes/total-allotment")
         .type("form")
         .send(totalAllotment)
       assert.equal(JSON.parse(response.text), expected)
@@ -646,7 +693,7 @@ describe("/api/transactions", () => {
       const expected = 600
       const totalAllotment = { totalAllotment: expected }
       const response = await request(app)
-        .put("/api/envelopes/totalAllotment")
+        .put("/api/envelopes/total-allotment")
         .type("form")
         .send(totalAllotment)
       assert.equal(JSON.parse(response.text), expected)

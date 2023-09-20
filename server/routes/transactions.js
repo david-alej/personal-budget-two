@@ -6,6 +6,7 @@ const {
   getTransactions,
   getTransactionById,
   createTransaction,
+  seedTransactions,
   updateTransaction,
   deleteTransactions,
   deleteTransactionById,
@@ -18,6 +19,8 @@ transactionsRouter.get("/", getTransactions)
 transactionsRouter.get("/:transactionId", getTransactionById)
 
 transactionsRouter.post("/", createTransaction)
+
+transactionsRouter.post("/seed-transactions", seedTransactions)
 
 transactionsRouter.put("/:transactionId", updateTransaction)
 

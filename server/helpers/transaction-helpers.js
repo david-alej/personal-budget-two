@@ -67,6 +67,64 @@ async function createTransaction(req, res, next) {
   res.status(400).send("Something went wrong with insert query")
 }
 
+async function seedTransactions(req, res, next) {
+  const seededTransactions = [
+    {
+      id: 1,
+      date: "Tue Sep 12 2023 00:00:00 GMT-0500 (Central Daylight Time)",
+      envelope_id: 2,
+      payment: 50,
+      shop: "Wingstop",
+    },
+    {
+      id: 2,
+      date: "Mon Sep 18 2023 00:00:00 GMT-0500 (Central Daylight Time)",
+      envelope_id: 1,
+      payment: 70,
+      shop: "Walmart",
+    },
+  ]
+  const results = []
+  for (let i = 0; i < seededTransactions.length; i++) {
+    const preMessage = `Number ${i + 1}: `
+    const transaction = seededTransactions[i]
+    const transactionIsInvalid = await isInvalidTransaction(transaction)
+    const dateValueIsNotUnique = await transactions.columnNotUnique(
+      "date",
+      transaction
+    )
+    if (transactionIsInvalid) {
+      res.status(400).send(preMessage + transactionIsInvalid)
+      return
+    } else if (dateValueIsNotUnique) {
+      res
+        .status(400)
+        .send(
+          preMessage + "Make sure that date is not a duplicate of existing data"
+        )
+      return
+    }
+    const updateEnvelopeAllotmentQuery = await transactions.data.query(
+      "UPDATE envelopes SET allotment = allotment - $2 WHERE id = $1 RETURNING *;",
+      [transaction.envelope_id, transaction.payment]
+    )
+    if (updateEnvelopeAllotmentQuery.rows.length <= 0) {
+      res.status(400).send(preMessage + "Update to envelopes was not possible")
+      return
+    }
+    envelopes.totalAllotment -= transaction.payment
+    const createdTransaction = await transactions.insertRow(transaction)
+    if (createdTransaction.length === 0) {
+      res
+        .status(400)
+        .send(preMessage + "Something went wrong with insert query")
+      return
+    }
+    results.push(createdTransaction[0])
+  }
+  res.status(201).send(JSON.stringify(results))
+}
+
 async function updateTransaction(req, res, next) {
   const transaction = req.transaction
   const newTransaction = req.body
@@ -133,6 +191,7 @@ module.exports = {
   getTransactions,
   getTransactionById,
   createTransaction,
+  seedTransactions,
   updateTransaction,
   deleteTransactions,
   deleteTransactionById,
