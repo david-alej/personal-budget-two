@@ -1,6 +1,5 @@
 const { Table } = require("./db-helpers")
 const { isInvalidTransaction } = require("../db/db")
-let { unusedAllotment } = require("./envelope-helpers")
 
 const transactions = new Table("transactions")
 
@@ -13,7 +12,13 @@ async function handleTransactionDeletion(transaction, preErrorMessage = "") {
   if (restoreEnvelopeAllotmentQuery.length === 0) {
     return preErrorMessage + "Restoring allotment query did not work."
   }
-  unusedAllotment -= -transaction.payment
+  const updatedUnusedAllotment = await transactions.updateUnusedAllotment(
+    transaction.payment,
+    "-"
+  )
+  if (updatedUnusedAllotment.length === 0) {
+    return preErrorMessage + "Updating unused allotment query was unsuccesful"
+  }
   const isDeleted = await transactions.deleteRowById(transaction.id)
   if (isDeleted.length === 0) {
     return preErrorMessage + "Delete query was not succesfull."
@@ -74,7 +79,18 @@ async function createTransaction(req, res, next) {
     res.status(400).send("Update to envelopes was not possible.")
     return
   }
-  unusedAllotment -= transaction.payment
+  const updatedUnusedAllotment = await envelopes.updateUnusedAllotment(
+    transaction.payment,
+    "-"
+  )
+  if (updatedUnusedAllotment.length === 0) {
+    res
+      .status(400)
+      .send(
+        preErrorMessage +
+          "Something went wrong with updating unused allotment query"
+      )
+  }
   const createdTransaction = await transactions.insertRow(transaction)
   if (createdTransaction.length > 0) {
     res.status(201).send(JSON.stringify(createdTransaction[0]))
@@ -129,7 +145,18 @@ async function seedTransactions(req, res, next) {
       res.status(400).send(preMessage + "Update to envelopes was not possible.")
       return
     }
-    unusedAllotment -= transaction.payment
+    const updatedUnusedAllotment = await envelopes.updateUnusedAllotment(
+      transaction.payment,
+      "-"
+    )
+    if (updatedUnusedAllotment.length === 0) {
+      res
+        .status(400)
+        .send(
+          preErrorMessage +
+            "Something went wrong with updating unused allotment query"
+        )
+    }
     const createdTransaction = await transactions.insertRow(transaction)
     if (createdTransaction.length === 0) {
       res
@@ -175,8 +202,18 @@ async function updateTransaction(req, res, next) {
       )
     return
   }
-  unusedAllotment -= paymentDifference
-  console.log(unusedAllotment)
+  const updatedUnusedAllotment = await envelopes.updateUnusedAllotment(
+    paymentDifference,
+    "-"
+  )
+  if (updatedUnusedAllotment.length === 0) {
+    res
+      .status(400)
+      .send(
+        preErrorMessage +
+          "Something went wrong with updating unused allotment query"
+      )
+  }
   const updatedTransaction = await transactions.updateRow(newTransaction)
   if (updatedTransaction.length > 0) {
     res.send(JSON.stringify(updatedTransaction[0]))
@@ -187,16 +224,18 @@ async function updateTransaction(req, res, next) {
 
 async function deleteTransactions(req, res, next) {
   const transactionsTable = await transactions.getAllRows()
-  for (let i = 0; i < transactionsTable.length; i++) {
-    const transaction = transactionsTable[i]
-    const preErrorMessage = `Transaction with id = ${i + 1}: `
-    const isDeleted = await handleTransactionDeletion(
-      transaction,
-      preErrorMessage
-    )
-    if (typeof isDeleted === "string") {
-      res.status(400).send(isDeleted)
-      return
+  if (transactionsTable.length > 0) {
+    for (let i = 0; i < transactionsTable.length; i++) {
+      const transaction = transactionsTable[i]
+      const preErrorMessage = `Transaction with id = ${i + 1}: `
+      const isDeleted = await handleTransactionDeletion(
+        transaction,
+        preErrorMessage
+      )
+      if (typeof isDeleted === "string") {
+        res.status(400).send(isDeleted)
+        return
+      }
     }
   }
 

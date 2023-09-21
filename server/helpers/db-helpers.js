@@ -3,7 +3,7 @@ const { pool } = require("../db/db")
 class Table {
   constructor(modelType) {
     this.modelType = modelType
-    this.data = this.pool
+    this.data = pool
   }
 
   async getAllRows() {
@@ -64,12 +64,12 @@ class Table {
   }
 
   async updateUnusedAllotment(updatedAllotment, operation = "") {
-    let queryOperation = "value "
+    let queryOperation = ""
     if (operation == "+" || operation === "-") {
-      queryOperation += operation
+      queryOperation += "value " + operation
     }
     const updateUnusedAllotmentQuery = pool.query(
-      `UPDATE varaibles SET value = ${queryOperation} $2 WHERE name = $1;`,
+      `UPDATE variables SET value = ${queryOperation} $2 WHERE name = $1 RETURNING *;`,
       ["unusedAllotment", updatedAllotment]
     )
     return (await updateUnusedAllotmentQuery).rows
@@ -95,7 +95,11 @@ class Table {
 
   isNotNumeric(number, nameOfNumber) {
     if (isNaN(parseFloat(number)) || !isFinite(number)) {
-      return "Change " + nameOfNumber + " to be a number."
+      return (
+        "Change the " +
+        nameOfNumber +
+        `, that is equal to ${number}, to be a number.`
+      )
     }
     return false
   }

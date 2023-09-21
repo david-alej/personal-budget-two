@@ -19,9 +19,9 @@ types.setTypeParser(1700, function (val) {
   return parseFloat(val)
 })
 
-async function getUnusedAllotment() {
+async function retrieveUnusedAllotment() {
   const unusedAllotmentQuery = await pool.query(
-    "SELECT value FROM varaibles WHERE name = $1;",
+    "SELECT value FROM variables WHERE name = $1;",
     ["unusedAllotment"]
   )
   return unusedAllotmentQuery.rows
@@ -47,9 +47,9 @@ async function isInvalidEnvelope(instance) {
     "SELECT sum(allotment) FROM  envelopes;"
   )
   const allotmentUsed = Number(allotmentUsedQuery.rows[0].sum)
-  const unusedAllotmentQuery = await getUnusedAllotment()
+  const unusedAllotmentQuery = await retrieveUnusedAllotment()
   const allotmentRemaining =
-    unusedAllotmentQuery - allotmentUsed - instance.allotment
+    unusedAllotmentQuery[0].value - allotmentUsed - instance.allotment
   if (allotmentRemaining < 0) {
     return `With new allotment, the total available allotment of all the envelopes has exceeded the unsued allotment limit by ${
       -1 * allotmentRemaining
@@ -97,7 +97,7 @@ async function isInvalidTransaction(instance) {
 
 module.exports = {
   pool,
-  getUnusedAllotment,
+  retrieveUnusedAllotment,
   isInvalidEnvelope,
   isInvalidTransaction,
 }

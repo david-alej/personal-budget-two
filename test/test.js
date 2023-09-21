@@ -27,7 +27,7 @@ async function resetDatabase(
     .type("form")
     .send({ unusedAllotment: 500 })
   if (seedDatabase) {
-    await request(app).post("/api/envelopes/seed-envelopes")
+    const response = await request(app).post("/api/envelopes/seed-envelopes")
     if (seedTransactions) {
       await request(app).post("/api/transactions/seed-transactions")
     }
@@ -81,7 +81,6 @@ describe("Database helpers", () => {
       const expected = []
       const result = _envelopes.deleteAllRows()
       assert.deepEqual(await result, expected)
-      await resetDatabase()
     })
 
     it("delete an envelope with id = 2", async () => {
@@ -136,7 +135,8 @@ describe("/api/envelopes", () => {
     })
 
     it("get envelope with invalid id = hi", async () => {
-      const expected = "Change envelopes's id to be a number."
+      const expected =
+        "Change the envelopes's id, that is equal to hi, to be a number."
       const id = "hi"
       const response = await request(app)
         .get("/api/envelopes/" + id)
@@ -351,7 +351,7 @@ describe("/api/envelopes", () => {
 
     it("Update total allotment with non-numeric total allotment = yo", async () => {
       const expected =
-        "The new Unused Allotment that is equal to yo must be a number."
+        "Change the new Unused Allotment, that is equal to yo, to be a number."
       const _unusedAllotment = { unusedAllotment: "yo" }
       const response = await request(app)
         .put("/api/envelopes/unused-allotment")
@@ -363,7 +363,7 @@ describe("/api/envelopes", () => {
 
     it("Update total allotment with no unusedAllotment property in request body", async () => {
       const expected =
-        "The new Unused Allotment that is equal to undefined must be a number."
+        "Change the new Unused Allotment, that is equal to undefined, to be a number."
       const _unusedAllotment = { yo: "yo" }
       const response = await request(app)
         .put("/api/envelopes/unused-allotment")

@@ -1,5 +1,5 @@
 const { Table } = require("./db-helpers")
-const { getUnusedAllotment, isInvalidEnvelope } = require("../db/db")
+const { retrieveUnusedAllotment, isInvalidEnvelope } = require("../db/db")
 
 const envelopes = new Table("envelopes")
 
@@ -21,8 +21,8 @@ async function handleEnvelopeId(req, res, next, id) {
 }
 
 async function getUnusedAllotment(req, res, next) {
-  const unusedAllotment = await getUnusedAllotment()
-  res.send(unusedAllotment.toString())
+  const unusedAllotment = await retrieveUnusedAllotment()
+  res.send(unusedAllotment[0].value.toString())
 }
 
 async function getEnvelopes(req, res, next) {
@@ -194,9 +194,10 @@ async function updateUnusedAllotment(req, res, next) {
     res.status(400).send(newUnusedAllotmentIsNotNumeric)
     return
   }
-  const updateUnusedAllotment =
-    envelopes.updateUnusedAllotment(newUnusedAllotment)
-  res.send(JSON.stringify(updateUnusedAllotment.toString()))
+  const updateUnusedAllotment = await envelopes.updateUnusedAllotment(
+    newUnusedAllotment
+  )
+  res.send(JSON.stringify(updateUnusedAllotment[0].value.toString()))
 }
 
 async function deleteEnvelopes(req, res, next) {
