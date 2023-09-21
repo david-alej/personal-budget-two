@@ -14,7 +14,7 @@ async function handleTransactionDeletion(transaction, preErrorMessage = "") {
   }
   const updatedUnusedAllotment = await transactions.updateUnusedAllotment(
     transaction.payment,
-    "-"
+    "+"
   )
   if (updatedUnusedAllotment.length === 0) {
     return preErrorMessage + "Updating unused allotment query was unsuccesful"
@@ -46,11 +46,11 @@ async function getUsedAllotment(req, res, next) {
   const usedAllotmentQuery = await transactions.data.query(
     "SELECT SUM(payment) FROM transactions;"
   )
-  console.log(usedAllotmentQuery.rows)
   if (usedAllotmentQuery.rows.length === 0) {
     res.status(400).send("Getting unused allotment query did not work.")
+    return
   }
-  res.status(400).send(JSON.stringify(usedAllotmentQuery.rows[0].sum))
+  res.send(JSON.stringify(usedAllotmentQuery.rows[0].sum))
 }
 
 async function getTransactions(req, res, next) {
@@ -101,6 +101,7 @@ async function createTransaction(req, res, next) {
         preErrorMessage +
           "Something went wrong with updating unused allotment query"
       )
+    return
   }
   const createdTransaction = await transactions.insertRow(transaction)
   if (createdTransaction.length > 0) {
@@ -167,6 +168,7 @@ async function seedTransactions(req, res, next) {
           preErrorMessage +
             "Something went wrong with updating unused allotment query"
         )
+      return
     }
     const createdTransaction = await transactions.insertRow(transaction)
     if (createdTransaction.length === 0) {
@@ -182,14 +184,23 @@ async function seedTransactions(req, res, next) {
 
 async function updateTransaction(req, res, next) {
   const transaction = req.transaction
+  req.body.id = req.transactionId
   const newTransaction = req.body
+  newTransaction.payment = Number(newTransaction.payment)
+  newTransaction.envelope_id = Number(newTransaction.envelope_id)
   const paymentDifference = newTransaction.payment - transaction.payment
-  newTransaction.payment = paymentDifference
+  if (transaction.envelope_id === newTransaction.envelope_id) {
+    newTransaction.payment = paymentDifference
+  }
   const newTransactionIsInvalid = await isInvalidTransaction(newTransaction)
   if (newTransactionIsInvalid) {
     res.status(400).send(newTransactionIsInvalid)
+    return
   }
-  newTransaction.payment -= -transaction.payment
+  if (transaction.envelope_id === newTransaction.envelope_id) {
+    newTransaction.payment -= -transaction.payment
+  }
+
   const restoreEnvelopeAllotmentQuery = await transactions.data.query(
     "UPDATE envelopes SET allotment = allotment + $2 WHERE id = $1 RETURNING *;",
     [transaction.envelope_id, transaction.payment]
@@ -224,6 +235,7 @@ async function updateTransaction(req, res, next) {
         preErrorMessage +
           "Something went wrong with updating unused allotment query"
       )
+    return
   }
   const updatedTransaction = await transactions.updateRow(newTransaction)
   if (updatedTransaction.length > 0) {
@@ -266,6 +278,7 @@ async function deleteTransactionById(req, res, next) {
   const isDeleted = await handleTransactionDeletion(transaction[0])
   if (typeof isDeleted === "string") {
     res.status(400).send(isDeleted)
+    return
   }
   res.status(204).send()
 }

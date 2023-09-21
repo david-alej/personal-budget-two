@@ -178,6 +178,7 @@ async function seedEnvelopes(req, res, next) {
 
 async function updateEnvelope(req, res, next) {
   const envelope = req.envelope
+  req.body.id = req.envelopeId
   const newEnvelope = req.body
   newEnvelope.allotment -= envelope.allotment
   const newEnvelopeIsInvalid = await isInvalidEnvelope(newEnvelope)
@@ -196,12 +197,23 @@ async function updateEnvelope(req, res, next) {
 
 async function updateUnusedAllotment(req, res, next) {
   let newUnusedAllotment = req.body.unusedAllotment
+  const totalAllotmentFromEnvelopes = (
+    await envelopes.data.query("SELECT SUM(allotment) FROM envelopes;")
+  ).rows[0].sum
   const newUnusedAllotmentIsNotNumeric = envelopes.isNotNumeric(
     newUnusedAllotment,
     "new Unused Allotment"
   )
   if (newUnusedAllotmentIsNotNumeric) {
     res.status(400).send(newUnusedAllotmentIsNotNumeric)
+    return
+  }
+  if (totalAllotmentFromEnvelopes > newUnusedAllotment) {
+    res
+      .status(400)
+      .send(
+        `New unused allotment, that is equal to ${newUnusedAllotment} is less than allotment that the envelopes reserve, make new unused allotent more`
+      )
     return
   }
   const updateUnusedAllotment = await envelopes.updateUnusedAllotment(

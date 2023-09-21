@@ -21,14 +21,6 @@ app.use("/api/envelopes", envelopesRouter)
 const transactionsRouter = require("./server/routes/transactions")
 app.use("/api/transactions", transactionsRouter)
 
-const { resetDatabase } = require("./server/db/db")
-const envelopes = require("./server/helpers/envelope-helpers")
-app.get("/api/restart-database", async (req, res, next) => {
-  const allotmentSpent = await resetDatabase(true)
-  envelopes.totalAllotment = 500 - allotmentSpent
-  res.send(envelopes.totalAllotment.toString())
-})
-
 app.listen(PORT, () => {
   console.log("Listening on port", PORT)
 })

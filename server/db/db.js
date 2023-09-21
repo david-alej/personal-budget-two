@@ -5,13 +5,6 @@ const pool = new Pool({
   database: "budget_api",
   password: "password",
   port: 5432,
-  typeCast: function (field, next) {
-    if (field.type == "NEWDECIMAL") {
-      var value = field.string()
-      return value === null ? null : Number(value)
-    }
-    return next()
-  },
 })
 
 const types = require("pg").types
