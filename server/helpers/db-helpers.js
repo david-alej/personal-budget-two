@@ -68,11 +68,11 @@ class Table {
     if (operation == "+" || operation === "-") {
       queryOperation += "value " + operation
     }
-    const updateUnusedAllotmentQuery = pool.query(
+    const updateUnusedAllotmentQuery = await pool.query(
       `UPDATE variables SET value = ${queryOperation} $2 WHERE name = $1 RETURNING *;`,
       ["unusedAllotment", updatedAllotment]
     )
-    return (await updateUnusedAllotmentQuery).rows
+    return updateUnusedAllotmentQuery.rows
   }
 
   async deleteAllRows() {

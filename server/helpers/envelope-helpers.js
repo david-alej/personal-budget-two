@@ -25,6 +25,16 @@ async function getUnusedAllotment(req, res, next) {
   res.send(unusedAllotment[0].value.toString())
 }
 
+async function getTotalAllotment(req, res, next) {
+  const unusedAllotment = await retrieveUnusedAllotment()
+  const usedAllotment = await envelopes.data.query(
+    "SELECT SUM(payment) FROM transactions;"
+  )
+  console.log(unusedAllotment[0].value, usedAllotment.rows[0].sum)
+  const totalAlltoment = unusedAllotment[0].value + usedAllotment.rows[0].sum
+  res.send(totalAlltoment.toString())
+}
+
 async function getEnvelopes(req, res, next) {
   res.send(JSON.stringify(await envelopes.getAllRows()))
 }
@@ -218,6 +228,7 @@ async function deleteEnvelopeById(req, res, next) {
 module.exports = {
   envelopes,
   getUnusedAllotment,
+  getTotalAllotment,
   handleEnvelopeId,
   getEnvelopes,
   getEnvelopeById,

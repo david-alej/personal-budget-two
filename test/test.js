@@ -27,7 +27,7 @@ async function resetDatabase(
     .type("form")
     .send({ unusedAllotment: 500 })
   if (seedDatabase) {
-    const response = await request(app).post("/api/envelopes/seed-envelopes")
+    await request(app).post("/api/envelopes/seed-envelopes")
     if (seedTransactions) {
       await request(app).post("/api/transactions/seed-transactions")
     }
@@ -99,7 +99,6 @@ describe("Database helpers", () => {
 describe("/api/envelopes", () => {
   beforeEach(async () => {
     await resetDatabase(false, true, false)
-    unusedAllotment = 500
   })
 
   describe("GET requests", () => {
@@ -145,13 +144,35 @@ describe("/api/envelopes", () => {
       assert.strictEqual(response.status, badRequest)
     })
 
-    it("get total allotment", async () => {
+    it("get unused allotment", async () => {
       const expected = 500
       const response = await request(app)
         .get("/api/envelopes/unused-allotment")
         .send()
       assert.equal(response.text, expected)
       assert.strictEqual(response.status, ok)
+    })
+
+    it("get unused allotment while having used allotment", async () => {
+      const expected = 380
+      await request(app).post("/api/transactions/seed-transactions").send()
+      const response = await request(app)
+        .get("/api/envelopes/unused-allotment")
+        .send()
+      assert.equal(response.text, expected)
+      assert.strictEqual(response.status, ok)
+      await request(app).delete("/api/transactions").send()
+    })
+
+    it("get unused allotment while having used allotment", async () => {
+      const expected = 500
+      await request(app).post("/api/transactions/seed-transactions").send()
+      const response = await request(app)
+        .get("/api/envelopes/total-allotment")
+        .send()
+      assert.equal(Number(response.text), expected)
+      assert.equal(response.status, ok)
+      await request(app).delete("/api/transactions").send()
     })
   })
 
@@ -337,19 +358,18 @@ describe("/api/envelopes", () => {
       assert.equal(response.status, badRequest)
     })
 
-    it("Update total allotment changing it from 500 to 600", async () => {
+    it("Update unused allotment changing it from 500 to 600", async () => {
       const expected = 600
       const _unusedAllotment = { unusedAllotment: expected }
       const response = await request(app)
         .put("/api/envelopes/unused-allotment")
         .type("form")
         .send(_unusedAllotment)
-      console.log(response.text)
       assert.equal(JSON.parse(response.text), expected)
       assert.strictEqual(response.status, ok)
     })
 
-    it("Update total allotment with non-numeric total allotment = yo", async () => {
+    it("Update unused allotment with non-numeric unused allotment = yo", async () => {
       const expected =
         "Change the new Unused Allotment, that is equal to yo, to be a number."
       const _unusedAllotment = { unusedAllotment: "yo" }
@@ -361,7 +381,7 @@ describe("/api/envelopes", () => {
       assert.strictEqual(response.status, badRequest)
     })
 
-    it("Update total allotment with no unusedAllotment property in request body", async () => {
+    it("Update unused allotment with no unusedAllotment property in request body", async () => {
       const expected =
         "Change the new Unused Allotment, that is equal to undefined, to be a number."
       const _unusedAllotment = { yo: "yo" }
@@ -392,8 +412,7 @@ describe("/api/envelopes", () => {
 // transactions tests
 describe("/api/transactions", () => {
   beforeEach(async () => {
-    const allotmentSpent = await resetDatabase(true)
-    unusedAllotment = 500 - allotmentSpent
+    await resetDatabase()
   })
 
   after(async () => {
@@ -458,6 +477,14 @@ describe("/api/transactions", () => {
       assert(response.text, expected)
       assert.equal(response.status, badRequest)
     })
+
+    it("get used allotment", async () => {
+      const expected = 120
+      const response = await request(app)
+        .get("/api/transactions/used-allotment")
+        .send()
+      assert.equal(response.text, expected)
+    })
   })
 
   describe("POST requests", () => {
@@ -474,7 +501,6 @@ describe("/api/transactions", () => {
         .post("/api/transactions")
         .type("form")
         .send(transaction)
-      console.log(response.text)
       assert.include(JSON.parse(response.text), expected)
       assert.equal(response.status, created)
     })
@@ -602,20 +628,15 @@ describe("/api/transactions", () => {
       const _unusedAllotmentAfterUpdate = await request(app)
         .get("/api/envelopes/unused-allotment")
         .send()
-      console.log(response.text)
-      console.log(
-        _unusedAllotmentBeforeUpdate.text,
-        _unusedAllotmentAfterUpdate.text
-      )
       assert.deepEqual(JSON.parse(response.text), expected)
       assert.equal(response.status, ok)
       assert.strictEqual(
         _unusedAllotmentBeforeUpdate.text - paymentDifference,
-        _unusedAllotmentAfterUpdate.text
+        Number(_unusedAllotmentAfterUpdate.text)
       )
       assert.strictEqual(
-        envelopesBeforeUpdate.text[1].allotment - paymentDifference,
-        envelopesAfterUpdate.text[1].allotment
+        JSON.parse(envelopesBeforeUpdate.text)[1].allotment - paymentDifference,
+        JSON.parse(envelopesAfterUpdate.text)[1].allotment
       )
     })
 
@@ -631,20 +652,27 @@ describe("/api/transactions", () => {
         shop: "Wingstop",
       })
 
-      const envelopesBeforeUpdate = await envelopes.getAllRows()
-      const _unusedAllotmentBeforeUpdate = unusedAllotment
+      let envelopesBeforeUpdate = await request(app)
+        .get("/api/envelopes")
+        .send()
+      const _unusedAllotmentBeforeUpdate = await request(app)
+        .get("/api/envelopes/unused-allotment")
+        .send()
       const response = await request(app)
         .put("/api/transactions/1")
         .type("form")
         .send(transaction)
-      const envelopesAfterUpdate = await envelopes.getAllRows()
-      const _unusedAllotmentAfterUpdate = unusedAllotment
-
+      let envelopesAfterUpdate = await request(app).get("/api/envelopes").send()
+      const _unusedAllotmentAfterUpdate = await request(app)
+        .get("/api/envelopes/unused-allotment")
+        .send()
+      envelopesBeforeUpdate = JSON.parse(envelopesBeforeUpdate.text)
+      envelopesAfterUpdate = JSON.parse(envelopesAfterUpdate.text)
       assert.include(JSON.parse(response.text), expected)
       assert.equal(response.status, ok)
       assert.strictEqual(
-        _unusedAllotmentBeforeUpdate - paymentDifference,
-        _unusedAllotmentAfterUpdate
+        _unusedAllotmentBeforeUpdate.text - paymentDifference,
+        Number(_unusedAllotmentAfterUpdate.text)
       )
       assert.strictEqual(
         envelopesBeforeUpdate[1].allotment + previousPayment,
@@ -716,8 +744,8 @@ describe("/api/transactions", () => {
     })
   })
 
-  describe("scope tests", async () => {
-    it("Update total allotment from 500 to 600 then check to see if I can create a new envelope that uses all 600 allotment", async () => {
+  describe("data persistency tests", async () => {
+    it("Update unused allotment from 500 to 600 then check to see if I can create a new envelope that uses all 600 allotment", async () => {
       const expected = 600
       const _unusedAllotment = { unusedAllotment: expected }
       const response = await request(app)

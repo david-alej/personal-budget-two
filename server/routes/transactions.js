@@ -3,6 +3,7 @@ const transactionsRouter = express.Router()
 
 const {
   handleTransactionId,
+  getUsedAllotment,
   getTransactions,
   getTransactionById,
   createTransaction,
@@ -13,6 +14,8 @@ const {
 } = require("../helpers/transaction-helpers")
 
 transactionsRouter.param("transactionId", handleTransactionId)
+
+transactionsRouter.get("/used-allotment", getUsedAllotment)
 
 transactionsRouter.get("/", getTransactions)
 

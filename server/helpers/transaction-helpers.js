@@ -3,7 +3,7 @@ const { isInvalidTransaction } = require("../db/db")
 
 const transactions = new Table("transactions")
 
-// Function right below comment is a helper to delete envelope-helpers
+// Function right below comment is a helper to delete trasaction-helpers
 async function handleTransactionDeletion(transaction, preErrorMessage = "") {
   const restoreEnvelopeAllotmentQuery = await transactions.data.query(
     "UPDATE envelopes SET allotment = allotment + $2 WHERE ID = $1 RETURNING *;",
@@ -40,6 +40,17 @@ async function handleTransactionId(req, res, next, id) {
     return
   }
   res.status(404).send("There is no transaction with that id.")
+}
+
+async function getUsedAllotment(req, res, next) {
+  const usedAllotmentQuery = await transactions.data.query(
+    "SELECT SUM(payment) FROM transactions;"
+  )
+  console.log(usedAllotmentQuery.rows)
+  if (usedAllotmentQuery.rows.length === 0) {
+    res.status(400).send("Getting unused allotment query did not work.")
+  }
+  res.status(400).send(JSON.stringify(usedAllotmentQuery.rows[0].sum))
 }
 
 async function getTransactions(req, res, next) {
@@ -79,7 +90,7 @@ async function createTransaction(req, res, next) {
     res.status(400).send("Update to envelopes was not possible.")
     return
   }
-  const updatedUnusedAllotment = await envelopes.updateUnusedAllotment(
+  const updatedUnusedAllotment = await transactions.updateUnusedAllotment(
     transaction.payment,
     "-"
   )
@@ -145,7 +156,7 @@ async function seedTransactions(req, res, next) {
       res.status(400).send(preMessage + "Update to envelopes was not possible.")
       return
     }
-    const updatedUnusedAllotment = await envelopes.updateUnusedAllotment(
+    const updatedUnusedAllotment = await transactions.updateUnusedAllotment(
       transaction.payment,
       "-"
     )
@@ -202,7 +213,7 @@ async function updateTransaction(req, res, next) {
       )
     return
   }
-  const updatedUnusedAllotment = await envelopes.updateUnusedAllotment(
+  const updatedUnusedAllotment = await transactions.updateUnusedAllotment(
     paymentDifference,
     "-"
   )
@@ -262,6 +273,7 @@ async function deleteTransactionById(req, res, next) {
 module.exports = {
   transactions,
   handleTransactionId,
+  getUsedAllotment,
   getTransactions,
   getTransactionById,
   createTransaction,
