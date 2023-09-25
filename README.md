@@ -39,7 +39,7 @@ Then you can run the api typing 'npm start' on the directory of this project. So
 
 - The first thing you should always do is to make sure there is enough unreserved allotment to create new envelopes.
 - You can access my api documentation by calling the endpoint '/api-docs'
-- When you run the tests I made it will automatically clear any previous data you might have. **SO DO NOT RUN THE TESTS BECAUSE IT WILL ERASE ALL THE DATAT YOU HAD.**
+- When you run the tests I made it will automatically clear any previous data you might have. **SO DO NOT RUN THE TESTS BECAUSE IT WILL ERASE ALL THE DATA YOU HAD.**
 
 ## Technologies
 
