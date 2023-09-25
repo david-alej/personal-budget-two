@@ -20,6 +20,23 @@ async function handleEnvelopeId(req, res, next, id) {
   res.status(404).send("There is no envelope with that id.")
 }
 
+async function getReservedAllotment(req, res, next) {
+  const reservedAllotmentQuery = await envelopes.data.query(
+    "SELECT SUM(allotment) FROM envelopes;"
+  )
+  res.send(reservedAllotmentQuery.rows[0].sum.toString())
+}
+
+async function getUnreservedAllotment(req, res, next) {
+  const reservedAllotmentQuery = await envelopes.data.query(
+    "SELECT SUM(allotment) FROM envelopes;"
+  )
+  const unusedAllotment = await retrieveUnusedAllotment()
+  const unreservedAllotment =
+    unusedAllotment[0].value - reservedAllotmentQuery.rows[0].sum
+  res.send(unreservedAllotment.toString())
+}
+
 async function getUnusedAllotment(req, res, next) {
   const unusedAllotment = await retrieveUnusedAllotment()
   res.send(unusedAllotment[0].value.toString())
@@ -30,13 +47,13 @@ async function getTotalAllotment(req, res, next) {
   const usedAllotment = await envelopes.data.query(
     "SELECT SUM(payment) FROM transactions;"
   )
-  console.log(unusedAllotment[0].value, usedAllotment.rows[0].sum)
   const totalAlltoment = unusedAllotment[0].value + usedAllotment.rows[0].sum
   res.send(totalAlltoment.toString())
 }
 
 async function getEnvelopes(req, res, next) {
-  res.send(JSON.stringify(await envelopes.getAllRows()))
+  const allEnvelopes = await envelopes.getAllRows()
+  res.send(JSON.stringify(allEnvelopes))
 }
 
 function getEnvelopeById(req, res, next) {
@@ -197,7 +214,7 @@ async function updateEnvelope(req, res, next) {
 
 async function updateUnusedAllotment(req, res, next) {
   let newUnusedAllotment = req.body.unusedAllotment
-  const totalAllotmentFromEnvelopes = (
+  const reservedAllotment = (
     await envelopes.data.query("SELECT SUM(allotment) FROM envelopes;")
   ).rows[0].sum
   const newUnusedAllotmentIsNotNumeric = envelopes.isNotNumeric(
@@ -208,7 +225,7 @@ async function updateUnusedAllotment(req, res, next) {
     res.status(400).send(newUnusedAllotmentIsNotNumeric)
     return
   }
-  if (totalAllotmentFromEnvelopes > newUnusedAllotment) {
+  if (reservedAllotment > newUnusedAllotment) {
     res
       .status(400)
       .send(
@@ -239,6 +256,8 @@ async function deleteEnvelopeById(req, res, next) {
 
 module.exports = {
   envelopes,
+  getReservedAllotment,
+  getUnreservedAllotment,
   getUnusedAllotment,
   getTotalAllotment,
   handleEnvelopeId,

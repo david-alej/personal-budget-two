@@ -109,6 +109,7 @@ describe("/api/envelopes", () => {
         { id: 3, category: "savings", allotment: 125 },
       ]
       const response = await request(app).get("/api/envelopes")
+      console.log(response.text)
       assert.deepEqual(JSON.parse(response.text), expected)
       assert.equal(response.status, 200)
     })
@@ -142,6 +143,24 @@ describe("/api/envelopes", () => {
         .send()
       assert.strictEqual(response.text, expected)
       assert.strictEqual(response.status, badRequest)
+    })
+
+    it("get reserved allotment", async () => {
+      const expected = 325
+      const response = await request(app)
+        .get("/api/envelopes/reserved-allotment")
+        .send()
+      assert.equal(response.text, expected)
+      assert.strictEqual(response.status, ok)
+    })
+
+    it("get unreserved allotment", async () => {
+      const expected = 175
+      const response = await request(app)
+        .get("/api/envelopes/unreserved-allotment")
+        .send()
+      assert.equal(response.text, expected)
+      assert.strictEqual(response.status, ok)
     })
 
     it("get unused allotment", async () => {

@@ -3,6 +3,8 @@ const envelopesRouter = express.Router()
 
 const {
   handleEnvelopeId,
+  getReservedAllotment,
+  getUnreservedAllotment,
   getUnusedAllotment,
   getTotalAllotment,
   getEnvelopes,
@@ -17,6 +19,10 @@ const {
 } = require("../helpers/envelope-helpers")
 
 envelopesRouter.param("envelopeId", handleEnvelopeId)
+
+envelopesRouter.get("/reserved-allotment", getReservedAllotment)
+
+envelopesRouter.get("/unreserved-allotment", getUnreservedAllotment)
 
 envelopesRouter.get("/unused-allotment", getUnusedAllotment)
 

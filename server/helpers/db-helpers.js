@@ -68,11 +68,21 @@ class Table {
     if (operation == "+" || operation === "-") {
       queryOperation += "value " + operation
     }
-    const updateUnusedAllotmentQuery = await pool.query(
-      `UPDATE variables SET value = ${queryOperation} $2 WHERE name = $1 RETURNING *;`,
-      ["unusedAllotment", updatedAllotment]
+    const unusedAllotmentExists = (await pool.query("SELECT * FROM variables;"))
+      .rows.length
+    if (unusedAllotmentExists) {
+      const updateUnusedAllotmentQuery = await pool.query(
+        `UPDATE variables SET value = ${queryOperation} $2 WHERE name = $1 RETURNING *;`,
+        ["unusedAllotment", updatedAllotment]
+      )
+      return updateUnusedAllotmentQuery.rows
+    }
+    const createUnusedAllotmentQuery = await pool.query(
+      "INSERT INTO variables VALUES ('unusedAllotment', $1)",
+      [updatedAllotment]
     )
-    return updateUnusedAllotmentQuery.rows
+
+    return createUnusedAllotmentQuery.rows
   }
 
   async deleteAllRows() {

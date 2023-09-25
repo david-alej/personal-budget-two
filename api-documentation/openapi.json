@@ -1,0 +1,696 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Personal Budget",
+    "version": "2.0.0",
+    "description": "This is an API that allows clients to create and manage a personal budget using Envelope Budget Principles.",
+    "license": {
+      "name": "MIT",
+      "url": "https://spdx.org/licenses/MIT.html"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:4001"
+    }
+  ],
+  "paths": {
+    "/api/envelopes/unused-allotment": {
+      "summary": "gets unused allotment",
+      "description": "This path is used to get the unused allotment",
+      "get": {
+        "summary": "Get unused allotment",
+        "description": "This path uses a GET operation to get the unused allotment",
+        "operationId": "",
+        "responses": {
+          "200": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unused allotment value": {
+                    "value": "\"500\""
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Default error sample response"
+          }
+        },
+        "tags": [
+          "Get Allotment Values"
+        ]
+      }
+    },
+    "/api/envelopes/total-allotment": {
+      "summary": "gets the total allotment",
+      "description": "This path is used to get the total allotment",
+      "get": {
+        "summary": "Get total allotment",
+        "description": "This path uses the GET operation to get the total allotment",
+        "operationId": "",
+        "responses": {
+          "200": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "total allotment value": {
+                    "value": "\"500\""
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Default error sample response"
+          }
+        },
+        "tags": [
+          "Get Allotment Values"
+        ]
+      }
+    },
+    "/api/envelopes": {
+      "summary": "three types of requests on envelopes",
+      "description": "This path is used to get all envelopes, delete all envelopes, or create an envelope",
+      "get": {
+        "summary": "Get envelopes",
+        "description": "This path uses a GET operation to get all the envelopes",
+        "operationId": "",
+        "responses": {
+          "200": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "get seeded envelopes": {
+                    "value": "[{ \"id\": 1, \"category\": \"groceries\", \"allotment\": 150 }, { \"id\": 2, \"category\": \"orderingOut\", \"allotment\": 50 },{ \"id\": 3, \"category\": \"savings\", \"allotment\": 125 }]"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Default error sample response"
+          }
+        },
+        "tags": [
+          "Get Data"
+        ]
+      },
+      "post": {
+        "summary": "Create envelope",
+        "description": "This path uses a POST operation to create an envelope",
+        "operationId": "",
+        "requestBody": {
+          "description": "Creates an envelope",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Envelope"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "add games envelope to seeded envelopes": {
+                    "value": "{\"id\": 4, \"category\": \"games\", \"allotment\": 40}"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Default error sample response"
+          }
+        },
+        "tags": [
+          "Create Data"
+        ]
+      },
+      "delete": {
+        "summary": "Delete envelopes",
+        "description": "This path uses a DELETE operation to delete all envelopes",
+        "operationId": "",
+        "responses": {
+          "204": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "Delete all seeded envelopes": {
+                    "value": "[]"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Default error sample response"
+          }
+        },
+        "tags": [
+          "Delete Data"
+        ]
+      }
+    },
+    "/api/envelopes/{envelopeId}": {
+      "summary": "three types of requests on envelopes",
+      "description": "This path is used to get, update, or delete an envelope with a specific id",
+      "get": {
+        "summary": "Get envelope",
+        "description": "This path uses a GET operation to get am envelope with the specific id equal to {envelopeId}",
+        "operationId": "",
+        "parameters": [
+          {
+            "name": "envelopeId",
+            "in": "path",
+            "description": "The id of the envelope.",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "Get groceries envelope that has id = 1 with seeded envelopes": {
+                    "value": "{\"id\": 1, \"category\": \"games\", \"allotment\":150}"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Default error sample response"
+          }
+        },
+        "tags": [
+          "Get Data"
+        ]
+      },
+      "put": {
+        "summary": "Update envelope",
+        "description": "This path uses a PUT operation to update an envelope with specific id equal to {envelopeId}",
+        "operationId": "",
+        "parameters": [
+          {
+            "name": "envelopeId",
+            "in": "path",
+            "description": "The id of the envelope.",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Updates an envelope",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Envelope"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "Update envelope that has id = 1 to change category from groceries to games": {
+                    "value": "{\"id\": 1, \"category\": \"games\", \"allotment\": 150}"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Default error sample response"
+          }
+        },
+        "tags": [
+          "Update Data"
+        ]
+      },
+      "delete": {
+        "summary": "Delete envelope",
+        "description": "This path uses a DELETE operation to delete an envelope with specific id equal to {envelopeId}",
+        "operationId": "",
+        "parameters": [
+          {
+            "name": "envelopeId",
+            "in": "path",
+            "description": "The id of the envelope.",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "Delete ordering out envelope that has id = 2": {
+                    "value": "\"\""
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Delete Data"
+        ]
+      }
+    },
+    "/api/envelopes/transfer/{from}/{to}": {
+      "summary": "transfer funds ",
+      "description": "This path is sued to transfer funds from the envelope with id = {from} to the envelope with id = {id}.",
+      "post": {
+        "summary": "Transfer funds",
+        "description": "This path uses POST operation to transfer allotment form one envelope with id = {from} to the another envelope with id = {to}",
+        "operationId": "",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "path",
+            "description": "The id of the envelope where the funds that are originating from.",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "to",
+            "in": "path",
+            "description": "The id of the envelope where the funds are going to.",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Transfers funds from one evelope to another",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Funds"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "Transfer funds, 10 dollars, from savings envelope with id = 3 to groceries envelope with id = 1": {
+                    "value": "[{ \"id\": 3, \"category\": \"savings\", \"allotment\": 115 },{ \"id\": 1, \"category\": \"groceries\", \"allotment\": 160 }]"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Default error sample response"
+          }
+        },
+        "tags": [
+          "Transfer Funds"
+        ]
+      }
+    },
+    "/api/envelopes/seed-envelopes": {
+      "summary": "Seeds envelopes",
+      "description": "This path is used to generate three envelopes",
+      "post": {
+        "summary": "Create envelopes",
+        "description": "This path uses a POST operation to create three envelopes",
+        "operationId": "",
+        "responses": {
+          "201": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "Generates three envelopes": {
+                    "value": "[{ \"id\": 1, \"category\": \"groceries\", \"allotment\": 150 }, { \"id\": 2, \"category\": \"orderingOut\", \"allotment\": 50 },{ \"id\": 3, \"category\": \"savings\", \"allotment\": 125 }]"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Default error sample response"
+          }
+        },
+        "tags": [
+          "Seed Data"
+        ]
+      }
+    },
+    "/api/transactions/used-allotment": {
+      "summary": "gets used allotment",
+      "description": "This path is used to get the used allotment",
+      "get": {
+        "summary": "Gets used allotment",
+        "description": "This path uses a GET operation to get the used allotment",
+        "operationId": "",
+        "responses": {
+          "200": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "Get unused allotment": {
+                    "value": "\"120\""
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Default error sample response"
+          }
+        },
+        "tags": [
+          "Get Allotment Values"
+        ]
+      }
+    },
+    "/api/transactions": {
+      "summary": "three types of requests",
+      "description": "This path is used to get all transactions, create an transactions, or delete all transactions",
+      "get": {
+        "summary": "Get transactions",
+        "description": "This path uses a GET operation to get all the transactions",
+        "operationId": "",
+        "responses": {
+          "200": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "Get transactions": {
+                    "value": "[{\"id\": 1,\"date\": \"Tue Sep 12 2023 00:00:00 GMT-0500 (Central Daylight Time)\",\"envelope_id\": 2,\"payment\": 50,\"shop\": \"Wingstop\"},{\"id\": 2,\"date\": \"Mon Sep 18 2023 00:00:00 GMT-0500 (Central Daylight Time)\",\"envelope_id\": 1,\"payment\": 70,\"shop\": \"Walmart\"}]"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Default error sample response"
+          }
+        },
+        "tags": [
+          "Get Data"
+        ]
+      },
+      "post": {
+        "summary": "Creates transaction",
+        "description": "This path uses the POST operation to create a transaction",
+        "operationId": "",
+        "requestBody": {
+          "description": "Creates a transaction",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Transaction"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "Create a Chase transaction that represents paying your monthly contribution to your retirement plan": {
+                    "value": "{\"id\": 3, \"payment\":50, \"shop\": \"Chase\", \"date\": \"Thr Sep 21 2023\", \"envelope_id\": 3}"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Default error sample response"
+          }
+        },
+        "tags": [
+          "Create Data"
+        ]
+      },
+      "delete": {
+        "summary": "Delete transactions",
+        "description": "This path uses a DELETE operation to delete all transactions",
+        "operationId": "",
+        "responses": {
+          "204": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "Delete a Wingstop transaction with id = 1": {
+                    "value": "{\"id\": 1, \"date\": \"Tue Sep 12 2023 00:00:00 GMT-0500 (Central Daylight Time)\", \"envelope_id\": 2, \"payment\":50, \"shop\":\"Wingstop\"}"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Default error sample response"
+          }
+        },
+        "tags": [
+          "Delete Data"
+        ]
+      }
+    },
+    "/api/transactions/{transactionId}": {
+      "summary": "three types of requests on transactions",
+      "description": "This path is used to get, update, or delete an transaction",
+      "get": {
+        "summary": "Get transaction",
+        "description": "This path uses a GET operation to get an envelope",
+        "operationId": "",
+        "parameters": [
+          {
+            "name": "transactionId",
+            "in": "path",
+            "description": "The id of the transaction.",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "Get Wingstop transaction with id = 1": {
+                    "value": "{\"id\": 1,\"date\": \"Tue Sep 12 2023 00:00:00 GMT-0500 (Central Daylight Time)\",envelope_id\": 2,\"payment\":50,\"shop\":\"Wingstop\"}"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Default error sample response"
+          }
+        },
+        "tags": [
+          "Get Data"
+        ]
+      },
+      "put": {
+        "summary": "Update trasaction",
+        "description": "This path uses a PUT operation to update an transaction",
+        "operationId": "",
+        "parameters": [
+          {
+            "name": "transactionId",
+            "in": "path",
+            "description": "The id of the transaction.",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Updates a transaction",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Transaction"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "Update Walmart transaction with id = 2 to have a payment of 60 ": {
+                    "value": "{\"date\":\"Mon Sep 18 2023 00:00:00 GMT-0500 (Central Daylight Time)\",\"envelope_id\": 1,\"payment\": 60,\"shop\": \"Walmart\"}"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Default error sample response"
+          }
+        },
+        "tags": [
+          "Update Data"
+        ]
+      },
+      "delete": {
+        "summary": "Delete transaction",
+        "description": "This path uses a DELETE operation to delete a transaction",
+        "operationId": "",
+        "parameters": [
+          {
+            "name": "transactionId",
+            "in": "path",
+            "description": "The id of the transaction.",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "Delete Walmart transaction with id = 2": {
+                    "value": "{\"id\": 2, \"date\": \"Mon Sep 18 2023 00:00:00 GMT-0500 (Central Daylight Time)\",\"envelope_id\":1, \"payment\": 70, \"shop\": \"Walmanrt\"}"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Default error sample response"
+          }
+        },
+        "tags": [
+          "Delete Data"
+        ]
+      }
+    },
+    "/api/transactions/seed-transactions": {
+      "summary": "Seeds transactions",
+      "description": "This path is used to generate two transactions",
+      "post": {
+        "summary": "Create transactions",
+        "description": "This path uses a POST operation to create two transactions",
+        "operationId": "",
+        "responses": {
+          "201": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "Generates two transactions": {
+                    "value": "[{\"id\": 1,\"date\": \"Tue Sep 12 2023 00:00:00 GMT-0500 (Central Daylight Time)\",\"envelope_id\": 2,\"payment\":50,\"shop\": \"Wingstop\"},{\"id\": 2,\"date\": \"Mon Sep 18 2023 00:00:00 GMT-0500 (Central Daylight Time)\",\"envelope_id\":1,\"payment\": 70,\"shop\": \"Walmart\"}]"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Default error sample response"
+          }
+        },
+        "tags": [
+          "Seed Data"
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Envelope": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "allotment": {
+            "type": "number"
+          }
+        },
+        "xml": {
+          "name": "Envelope"
+        }
+      },
+      "Transaction": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "payment": {
+            "type": "number"
+          },
+          "shop": {
+            "type": "string"
+          },
+          "envelope_id": {
+            "type": "integer"
+          }
+        },
+        "xml": {
+          "name": "Transaction"
+        }
+      },
+      "Funds": {
+        "type": "object",
+        "properties": {
+          "funds": {
+            "type": "number"
+          }
+        },
+        "xml": {
+          "name": "funds"
+        }
+      }
+    }
+  }
+}
