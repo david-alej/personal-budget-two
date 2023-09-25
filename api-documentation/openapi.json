@@ -3,7 +3,7 @@
   "info": {
     "title": "Personal Budget",
     "version": "2.0.0",
-    "description": "This is an API that allows clients to create and manage a personal budget using Envelope Budget Principles.",
+    "description": "This is an API that allows clients to create and manage a personal budget using Envelope Budget Principles. The path reponses below assume that total allotment is 500, envelopes are seeded for the '/api/envelopes' endpoints, and that envelopes & transactions are seeeded for the '/api/transactions' endpoints. See the last tag to look at the seeded data.",
     "license": {
       "name": "MIT",
       "url": "https://spdx.org/licenses/MIT.html"
@@ -15,6 +15,64 @@
     }
   ],
   "paths": {
+    "/api/envelopes/reserved-allotment": {
+      "summary": "gets reserved allotment",
+      "description": "This path is used to get the reserved allotment",
+      "get": {
+        "summary": "Get reserved allotment",
+        "description": "This path uses a GET operation to get the reserved allotment",
+        "operationId": "",
+        "responses": {
+          "200": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unused allotment value": {
+                    "value": "\"325\""
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Default error sample response"
+          }
+        },
+        "tags": [
+          "Get Allotment Values"
+        ]
+      }
+    },
+    "/api/envelopes/unreserved-allotment": {
+      "summary": "gets unreserved allotment",
+      "description": "This path is used to get the unreserved allotment",
+      "get": {
+        "summary": "Get unreserved allotment",
+        "description": "This path uses a GET operation to get the unreserved allotment",
+        "operationId": "",
+        "responses": {
+          "200": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unused allotment value": {
+                    "value": "\"175\""
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Default error sample response"
+          }
+        },
+        "tags": [
+          "Get Allotment Values"
+        ]
+      }
+    },
     "/api/envelopes/unused-allotment": {
       "summary": "gets unused allotment",
       "description": "This path is used to get the unused allotment",
@@ -86,7 +144,7 @@
             "content": {
               "application/json": {
                 "examples": {
-                  "get seeded envelopes": {
+                  "get envelopes": {
                     "value": "[{ \"id\": 1, \"category\": \"groceries\", \"allotment\": 150 }, { \"id\": 2, \"category\": \"orderingOut\", \"allotment\": 50 },{ \"id\": 3, \"category\": \"savings\", \"allotment\": 125 }]"
                   }
                 }
@@ -122,7 +180,7 @@
             "content": {
               "application/json": {
                 "examples": {
-                  "add games envelope to seeded envelopes": {
+                  "add games envelope": {
                     "value": "{\"id\": 4, \"category\": \"games\", \"allotment\": 40}"
                   }
                 }
@@ -147,7 +205,7 @@
             "content": {
               "application/json": {
                 "examples": {
-                  "Delete all seeded envelopes": {
+                  "Delete all envelopes": {
                     "value": "[]"
                   }
                 }
@@ -187,7 +245,7 @@
             "content": {
               "application/json": {
                 "examples": {
-                  "Get groceries envelope that has id = 1 with seeded envelopes": {
+                  "Get groceries envelope with id = 1": {
                     "value": "{\"id\": 1, \"category\": \"games\", \"allotment\":150}"
                   }
                 }
@@ -234,7 +292,7 @@
             "content": {
               "application/json": {
                 "examples": {
-                  "Update envelope that has id = 1 to change category from groceries to games": {
+                  "Update envelope with id = 1 to change category from groceries to games": {
                     "value": "{\"id\": 1, \"category\": \"games\", \"allotment\": 150}"
                   }
                 }
@@ -270,7 +328,7 @@
             "content": {
               "application/json": {
                 "examples": {
-                  "Delete ordering out envelope that has id = 2": {
+                  "Delete ordering out envelope with id = 2": {
                     "value": "\"\""
                   }
                 }
